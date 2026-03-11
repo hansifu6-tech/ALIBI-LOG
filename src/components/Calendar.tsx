@@ -574,8 +574,8 @@ export function Calendar({
 
       {/* Loading Modal */}
       {isPosterLoading && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-gray-900 px-10 py-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 animate-in zoom-in-95">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md transition-opacity duration-300">
+          <div className="bg-white dark:bg-gray-900 px-10 py-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 transition-all">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
             <p className="text-lg font-bold text-gray-800 dark:text-gray-100">正在生成预览，请稍候...</p>
             <button 

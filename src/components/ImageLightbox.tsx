@@ -8,7 +8,7 @@ interface ImageLightboxProps {
 export function ImageLightbox({ imageUrl, onClose }: ImageLightboxProps) {
   return (
     <div 
-      className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-500 cursor-zoom-out"
+      className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center transition-opacity duration-500 cursor-zoom-out"
       onClick={onClose}
     >
       <button 
@@ -22,7 +22,7 @@ export function ImageLightbox({ imageUrl, onClose }: ImageLightboxProps) {
       </button>
       
       <div 
-        className="relative max-w-[95vw] max-h-[90vh] flex items-center justify-center animate-in fade-in zoom-in-95 duration-500 pointer-events-none"
+        className="relative max-w-[95vw] max-h-[90vh] flex items-center justify-center transition-all duration-500 pointer-events-none"
       >
         <img 
           src={imageUrl} 

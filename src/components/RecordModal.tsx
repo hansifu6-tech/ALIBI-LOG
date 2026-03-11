@@ -232,9 +232,9 @@ export function RecordModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-opacity duration-200" onClick={onClose}>
       <div 
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transition-all duration-200 flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -389,7 +389,7 @@ export function RecordModal({
               </div>
             </div>
           ) : (
-            <div className="p-6 space-y-6 overflow-y-auto flex-1 animate-in slide-in-from-right-2 duration-300">
+            <div className="p-6 space-y-6 overflow-y-auto flex-1 transition-all duration-300">
               {/* Event Form */}
               <div className="space-y-5 border-b border-gray-100 dark:border-gray-700/50 pb-6">
                 <div className="space-y-3">

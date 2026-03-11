@@ -45,7 +45,7 @@ export function TimelineView({ records, tags, onEditRecord, onPreviewImage }: Ti
 
   if (records.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-400 animate-in fade-in duration-500">
+      <div className="flex flex-col items-center justify-center py-20 text-gray-400 transition-opacity duration-500">
         <Clock size={48} className="mb-4 opacity-20" />
         <p className="text-lg font-medium">尚无记录，开始记录你的生活吧 ✨</p>
       </div>
@@ -53,7 +53,7 @@ export function TimelineView({ records, tags, onEditRecord, onPreviewImage }: Ti
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 animate-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 transition-all duration-500">
       <div className="space-y-8">
         {groupedRecords.map(([dateStr, items]) => {
           const { day, monthName, weekday } = formatDate(dateStr);
