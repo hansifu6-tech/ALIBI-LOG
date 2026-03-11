@@ -66,7 +66,7 @@ function aggregateDailyRows(rows: any[]): DailyRecord[] {
     
     // repeatDays stored in 'tags' column of the definition row (mood is null)
     let rowRepeatDays: number[] | null = null;
-    if (!moodIsDate && row.tags) {
+    if (row.tags) {
       try {
         rowRepeatDays = Array.isArray(row.tags) ? row.tags.map(Number) : JSON.parse(row.tags).map(Number);
       } catch { /* fallback */ }
@@ -81,8 +81,8 @@ function aggregateDailyRows(rows: any[]): DailyRecord[] {
     // If it's the definition row, capture the canonical ID and custom repeatDays
     if (!moodIsDate) {
       entry.id = String(row.id);
-      if (rowRepeatDays) entry.repeatDays = rowRepeatDays;
     }
+    if (rowRepeatDays) entry.repeatDays = rowRepeatDays;
     
     // Collect check-in dates
     if (moodIsDate) entry.dates.push(row.mood);
@@ -264,6 +264,7 @@ export const useSupabaseData = (userId: string | null | undefined) => {
         color: encodeColor(record.color),
         image_url: null,
         mood: null, // null → habit definition row
+        tags: record.repeatDays || [0, 1, 2, 3, 4, 5, 6],
       };
     } else {
       // Convert tagIds to tag name strings for storage
@@ -402,17 +403,19 @@ export const useSupabaseData = (userId: string | null | undefined) => {
        const oldContent = existingDef.content;
        const newContent = record.content;
 
-       // Update definition row
-       const { error: defErr } = await supabase
+       // Bulk update ALL records for this habit (Consistency Fix)
+       const { error: bulkErr } = await supabase
          .from('records')
          .update({ 
            content: newContent, 
            color: encodeColor(record.color),
            tags: newRepeatDays 
          })
-         .eq('id', record.id);
+         .eq('user_id', userId)
+         .eq('type', 'daily')
+         .eq('content', oldContent);
        
-       if (defErr) console.warn('[Supabase] definition update warn:', defErr);
+       if (bulkErr) console.warn('[Supabase] bulk habit update warn:', bulkErr);
 
        // Cascade name change if necessary
        if (oldContent !== newContent) {
@@ -448,7 +451,7 @@ export const useSupabaseData = (userId: string | null | undefined) => {
           type: 'daily',
           content: record.content,
           color: encodeColor(record.color),
-          image_url: null,
+          tags: record.repeatDays || [0, 1, 2, 3, 4, 5, 6],
           mood: date,
         }));
         await supabase.from('records').insert(insertRows);

@@ -13,7 +13,7 @@ interface RecordModalProps {
   onAddRecord: (record: CalendarRecord) => void;
   onUpdateRecord: (record: CalendarRecord) => void;
   onDeleteRecord: (id: string, type: 'daily' | 'special', content?: string) => void;
-  editingRecord: {record: CalendarRecord, dateStr: string} | null;
+  editingRecord: { record: CalendarRecord, dateStr: string } | null;
   tags: RecordTag[];
   allAvailableTags: RecordTag[];   // Cloud tag suggestions from Supabase
   onAddTag: (tag: RecordTag) => void;
@@ -37,18 +37,18 @@ const WEEKDAYS = [
   { label: '六', value: 6 },
 ];
 
-export function RecordModal({ 
-  isOpen, 
-  onClose, 
-  selectedDate, 
-  onAddRecord, 
-  onUpdateRecord, 
-  onDeleteRecord, 
-  editingRecord, 
-  tags, 
+export function RecordModal({
+  isOpen,
+  onClose,
+  selectedDate,
+  onAddRecord,
+  onUpdateRecord,
+  onDeleteRecord,
+  editingRecord,
+  tags,
   allAvailableTags,
-  onAddTag, 
-  onDeleteTag, 
+  onAddTag,
+  onDeleteTag,
   records,
   filterTagIds,
   setFilterTagIds,
@@ -57,7 +57,7 @@ export function RecordModal({
   onPreviewImage
 }: RecordModalProps) {
   const [activeTab, setActiveTab] = useState<'daily' | 'special'>('daily');
-  
+
   // Default color fallback
   const defaultColors = presetColors && presetColors.length > 0 ? presetColors : [{ bg: '#3b82f6', text: '#ffffff' }];
   const defaultColor = defaultColors[0];
@@ -75,7 +75,7 @@ export function RecordModal({
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [specialColor, setSpecialColor] = useState<CalendarColor>(defaultColor);
   const [dateError, setDateError] = useState('');
-  
+
   // New Tag State
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagName, setNewTagName] = useState('');
@@ -94,6 +94,7 @@ export function RecordModal({
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
   const [editHabitName, setEditHabitName] = useState('');
   const [editHabitDays, setEditHabitDays] = useState<number[]>([]);
+  const [editHabitColor, setEditHabitColor] = useState<CalendarColor>(defaultColor);
 
   // Defensive arrays
   const safeTags = tags || [];
@@ -119,7 +120,7 @@ export function RecordModal({
             setSelMonth(dateParts[1]);
             setSelDay(dateParts[2]);
           }
-           setSelectedTagIds(spec.tagIds || []);
+          setSelectedTagIds(spec.tagIds || []);
           setSpecialColor(spec.color || defaultColor);
           setExistingImageUrls(spec.imageUrls || []);
           setNewImageFiles([]);
@@ -128,30 +129,30 @@ export function RecordModal({
         setDailyContent('');
         setSelectedColor(defaultColor);
         setRepeatDays([0, 1, 2, 3, 4, 5, 6]);
-        
+
         setSpecialTitle('');
         setDateError('');
-        
+
         if (selectedDate) {
           setSelYear(selectedDate.getFullYear());
           setSelMonth(selectedDate.getMonth() + 1);
           setSelDay(selectedDate.getDate());
         }
-        
+
         setSelectedTagIds([]);
         const initialSpecialColor = (defaultColors.length > 10) ? defaultColors[10] : defaultColor;
-        setSpecialColor(initialSpecialColor); 
+        setSpecialColor(initialSpecialColor);
         setExistingImageUrls([]);
         setNewImageFiles([]);
       }
       setIsAddingTag(false);
       setNewTagName('');
     }
-  }, [isOpen]); 
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  
+
 
   const isValidDate = (year: number, month: number, day: number) => {
     const d = new Date(year, month - 1, day);
@@ -174,7 +175,7 @@ export function RecordModal({
       repeatDays: repeatDays,
     });
     setDailyContent('');
-    onClose(); 
+    onClose();
   };
 
   const handleSaveSpecial = async () => {
@@ -238,7 +239,7 @@ export function RecordModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-opacity duration-200" onClick={onClose}>
-      <div 
+      <div
         className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transition-all duration-200 flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
@@ -251,7 +252,7 @@ export function RecordModal({
             <X size={20} />
           </button>
         </div>
-        
+
         {/* Tabs */}
         {!editingRecord && (
           <div className="flex border-b border-gray-100 dark:border-gray-700/50 shrink-0">
@@ -281,7 +282,7 @@ export function RecordModal({
                 <div className="space-y-3">
                   <label className="text-sm font-bold text-gray-700 dark:text-gray-300">🚀 新建习惯</label>
                   <div className="flex gap-2">
-                    <input 
+                    <input
                       type="text"
                       value={dailyContent}
                       onChange={(e) => setDailyContent(e.target.value)}
@@ -289,16 +290,16 @@ export function RecordModal({
                       placeholder="习惯名称，例如：阅读..."
                       maxLength={20}
                     />
-                    <button 
-                      onClick={handleSaveDaily} 
-                      disabled={!dailyContent.trim() || repeatDays.length === 0} 
+                    <button
+                      onClick={handleSaveDaily}
+                      disabled={!dailyContent.trim() || repeatDays.length === 0}
                       className="px-6 bg-blue-600 disabled:bg-gray-400 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95 text-sm"
                     >
                       创建
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="space-y-3">
                   <label className="text-sm font-bold text-gray-700 dark:text-gray-300">📅 周期选择</label>
                   <div className="flex justify-between gap-1">
@@ -306,9 +307,8 @@ export function RecordModal({
                       <button
                         key={day.value}
                         onClick={() => setRepeatDays(prev => prev.includes(day.value) ? prev.filter(d => d !== day.value) : [...prev, day.value].sort())}
-                        className={`flex-1 py-1.5 rounded-lg border-[1.5px] font-bold text-xs transition-all ${
-                          repeatDays.includes(day.value) ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400'
-                        }`}
+                        className={`flex-1 py-1.5 rounded-lg border-[1.5px] font-bold text-xs transition-all ${repeatDays.includes(day.value) ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-400'
+                          }`}
                       >
                         {day.label}
                       </button>
@@ -340,11 +340,11 @@ export function RecordModal({
                   {safeRecords.filter(r => r.type === 'daily').map(record => {
                     const habit = record as DailyRecord;
                     const isEditing = editingHabitId === habit.id;
-                    
+
                     if (isEditing) {
                       return (
                         <div key={habit.id} className="flex flex-col gap-4 p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border-2 border-blue-400/50 shadow-md">
-                          <input 
+                          <input
                             type="text"
                             value={editHabitName}
                             onChange={(e) => setEditHabitName(e.target.value)}
@@ -352,47 +352,64 @@ export function RecordModal({
                             placeholder="习惯名称..."
                             autoFocus
                           />
-                          <div className="flex items-center justify-between">
-                            <div className="flex gap-1.5">
+
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">周期重复</label>
+                            <div className="flex gap-1.5 overflow-x-auto pb-1">
                               {WEEKDAYS.map((day) => {
                                 const active = editHabitDays.includes(day.value);
                                 return (
                                   <button
                                     key={day.value}
-                                    onClick={() => setEditHabitDays(prev => 
+                                    onClick={() => setEditHabitDays(prev =>
                                       active ? prev.filter(d => d !== day.value) : [...prev, day.value].sort()
                                     )}
-                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
-                                      active ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-400 border border-gray-100 dark:border-gray-700'
-                                    }`}
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all shrink-0 ${active ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-400 border border-gray-100 dark:border-gray-700'
+                                      }`}
                                   >
                                     {day.label}
                                   </button>
                                 );
                               })}
                             </div>
-                            <div className="flex gap-2">
-                              <button 
-                                onClick={() => setEditingHabitId(null)}
-                                className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-gray-700 bg-gray-100 dark:bg-gray-800 rounded-lg"
-                              >
-                                取消
-                              </button>
-                              <button 
-                                onClick={() => {
-                                  if (editHabitName.trim()) {
-                                    handleUpdateHabitInline(habit, { 
-                                      content: editHabitName.trim(), 
-                                      repeatDays: editHabitDays.length > 0 ? editHabitDays : [0,1,2,3,4,5,6]
-                                    });
-                                    setEditingHabitId(null);
-                                  }
-                                }}
-                                className="px-3 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-lg shadow-lg shadow-blue-500/20"
-                              >
-                                保存
-                              </button>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">更换主题色</label>
+                            <div className="flex flex-wrap gap-1.5 w-full bg-white/50 dark:bg-black/20 p-2 rounded-xl">
+                              {defaultColors.map((color, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => setEditHabitColor(color)}
+                                  style={{ backgroundColor: color.bg }}
+                                  className={`w-6 h-6 rounded-full border-2 transition-all shrink-0 ${editHabitColor.bg === color.bg ? 'border-blue-500 scale-110 shadow-sm' : 'border-transparent hover:scale-105'}`}
+                                />
+                              ))}
                             </div>
+                          </div>
+
+                          <div className="flex justify-end gap-2 mt-1">
+                            <button
+                              onClick={() => setEditingHabitId(null)}
+                              className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-gray-700 bg-gray-100 dark:bg-gray-800 rounded-lg"
+                            >
+                              取消
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (editHabitName.trim()) {
+                                  handleUpdateHabitInline(habit, {
+                                    content: editHabitName.trim(),
+                                    repeatDays: editHabitDays.length > 0 ? editHabitDays : [0, 1, 2, 3, 4, 5, 6],
+                                    color: editHabitColor
+                                  });
+                                  setEditingHabitId(null);
+                                }
+                              }}
+                              className="px-3 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-lg shadow-lg shadow-blue-500/20"
+                            >
+                              保存
+                            </button>
                           </div>
                         </div>
                       );
@@ -403,31 +420,33 @@ export function RecordModal({
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <div className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: habit.color?.bg }} />
-                            <span 
+                            <span
                               className="text-sm font-semibold text-gray-800 dark:text-gray-100 w-full overflow-hidden truncate cursor-pointer hover:text-blue-600"
                               onClick={() => {
                                 setEditingHabitId(habit.id);
                                 setEditHabitName(habit.content);
                                 setEditHabitDays(habit.repeatDays || []);
+                                setEditHabitColor(habit.color || defaultColor);
                               }}
                             >
                               {habit.content}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <button 
+                            <button
                               onClick={() => {
                                 setEditingHabitId(habit.id);
                                 setEditHabitName(habit.content);
                                 setEditHabitDays(habit.repeatDays || []);
+                                setEditHabitColor(habit.color || defaultColor);
                               }}
                               className="p-2 text-gray-300 opacity-0 group-hover:opacity-100 hover:text-blue-500 rounded-lg transition-all"
                               title="编辑"
                             >
                               <RotateCcw size={16} className="rotate-180" />
                             </button>
-                            <button 
-                              onClick={() => onDeleteRecord(habit.id, 'daily', habit.content)} 
+                            <button
+                              onClick={() => onDeleteRecord(habit.id, 'daily', habit.content)}
                               className="p-2 text-gray-300 opacity-0 group-hover:opacity-100 hover:text-red-500 rounded-lg transition-all"
                               title="删除"
                             >
@@ -441,9 +460,8 @@ export function RecordModal({
                             return (
                               <div
                                 key={day.value}
-                                className={`w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-bold transition-all ${
-                                  isSelected ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-gray-50 dark:bg-gray-800 text-gray-300'
-                                }`}
+                                className={`w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-bold transition-all ${isSelected ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-gray-50 dark:bg-gray-800 text-gray-300'
+                                  }`}
                               >
                                 {day.label}
                               </div>
@@ -467,7 +485,7 @@ export function RecordModal({
               <div className="space-y-5 border-b border-gray-100 dark:border-gray-700/50 pb-6">
                 <div className="space-y-3">
                   <label className="text-sm font-bold text-gray-700 dark:text-gray-300">📝 事件名称</label>
-                  <input 
+                  <input
                     type="text"
                     value={specialTitle}
                     onChange={(e) => setSpecialTitle(e.target.value)}
@@ -497,9 +515,8 @@ export function RecordModal({
                   <label className="text-sm font-bold text-gray-700 dark:text-gray-300">🏷️ 标签</label>
                   <div className="flex flex-wrap gap-2">
                     {safeTags.map(tag => (
-                      <div key={tag.id} className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs transition-all shadow-sm ${
-                        selectedTagIds.includes(tag.id) ? 'bg-gray-800 text-white border-gray-800 dark:bg-gray-200 dark:text-gray-900' : 'bg-white text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-200'
-                      }`}>
+                      <div key={tag.id} className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs transition-all shadow-sm ${selectedTagIds.includes(tag.id) ? 'bg-gray-800 text-white border-gray-800 dark:bg-gray-200 dark:text-gray-900' : 'bg-white text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-200'
+                        }`}>
                         <button onClick={() => setSelectedTagIds(prev => prev.includes(tag.id) ? prev.filter(t => t !== tag.id) : [...prev, tag.id])} className="flex-1">
                           {tag.name}
                         </button>
@@ -552,9 +569,9 @@ export function RecordModal({
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-3">
                       <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed transition-all cursor-pointer border-gray-200 dark:border-gray-700 hover:border-purple-400`}>
-                        <input 
-                          type="file" 
-                          className="hidden" 
+                        <input
+                          type="file"
+                          className="hidden"
                           accept="image/*"
                           multiple
                           onChange={(e) => {
@@ -581,7 +598,7 @@ export function RecordModal({
                         {existingImageUrls.map((img, idx) => (
                           <div key={`existing-${idx}`} className="relative group w-16 h-16 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm cursor-zoom-in active:scale-95 transition-transform" onClick={() => onPreviewImage(img)}>
                             <img src={img} className="w-full h-full object-cover" alt="preview" />
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setExistingImageUrls(prev => prev.filter((_, i) => i !== idx));
@@ -599,7 +616,7 @@ export function RecordModal({
                             <div className="absolute bottom-0 left-0 right-0 h-3 bg-purple-500/60 flex items-center justify-center">
                               <span className="text-[8px] text-white font-bold">待传</span>
                             </div>
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setNewImageFiles(prev => prev.filter((_, i) => i !== idx));
@@ -631,7 +648,7 @@ export function RecordModal({
                   </div>
                 </div>
 
-                <button 
+                <button
                   onClick={handleSaveSpecial}
                   disabled={!specialTitle.trim() || isUploading}
                   className="w-full py-4 bg-purple-600 disabled:bg-gray-400 text-white rounded-xl font-bold shadow-lg shadow-purple-500/20 transition-all active:scale-[0.98] text-sm flex items-center justify-center gap-2"
@@ -642,11 +659,11 @@ export function RecordModal({
 
                 {editingRecord && editingRecord.record.type === 'special' && (
                   <div className="mt-3">
-                    <button 
-                      onClick={() => { 
-                        onDeleteRecord(editingRecord.record.id, 'special'); 
+                    <button
+                      onClick={() => {
+                        onDeleteRecord(editingRecord.record.id, 'special');
                         setSpecialTitle('');
-                        onClose(); 
+                        onClose();
                       }}
                       className="w-full py-3.5 bg-transparent border-2 border-red-50 text-red-500 rounded-xl font-bold text-sm hover:bg-red-50 transition-colors"
                     >
@@ -666,14 +683,14 @@ export function RecordModal({
                     ⚙️ 显示设置
                   </label>
                   <div className="flex gap-2">
-                    <button 
+                    <button
                       onClick={() => setFilterTagIds([])}
                       title="重置过滤"
                       className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-200 transition-colors"
                     >
                       <RotateCcw size={16} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => setHideAllSpecialEvents(prev => !prev)}
                       title={hideAllSpecialEvents ? "显示所有" : "隐藏所有"}
                       className={`p-2 rounded-lg transition-colors ${hideAllSpecialEvents ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}
@@ -690,15 +707,14 @@ export function RecordModal({
                       <button
                         key={`filter-${tag.id}`}
                         onClick={() => {
-                          setFilterTagIds(prev => 
+                          setFilterTagIds(prev =>
                             prev.includes(tag.id) ? prev.filter(id => id !== tag.id) : [...prev, tag.id]
                           );
                         }}
-                        className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
-                          filterTagIds.includes(tag.id)
+                        className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${filterTagIds.includes(tag.id)
                             ? 'bg-purple-600 border-purple-600 text-white shadow-md scale-105'
                             : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-500 hover:border-purple-300'
-                        }`}
+                          }`}
                       >
                         {tag.name}
                       </button>
