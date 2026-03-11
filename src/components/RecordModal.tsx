@@ -16,7 +16,7 @@ interface RecordModalProps {
   editingRecord: { record: CalendarRecord, dateStr: string } | null;
   tags: RecordTag[];
   allAvailableTags: RecordTag[];   // Cloud tag suggestions from Supabase
-  onAddTag: (tag: RecordTag) => void;
+  onAddTag: (tag: RecordTag) => Promise<RecordTag | null>;
   onDeleteTag: (tagId: string) => void;
   records: CalendarRecord[];
   // Filtering props
@@ -223,11 +223,15 @@ export function RecordModal({
     }
   };
 
-  const handleAddNewTag = () => {
+  const handleAddNewTag = async () => {
     if (newTagName.trim()) {
-      const newTag = { id: `tag_${Date.now()}`, name: newTagName.trim() };
-      onAddTag(newTag);
-      setSelectedTagIds(prev => [...prev, newTag.id]);
+      const tempTag = { id: `tag_${Date.now()}`, name: newTagName.trim() };
+      // addTag now returns the real record from Supabase (with UUID)
+      const realTag = await onAddTag(tempTag);
+      
+      const tagToSelect = realTag || tempTag;
+      setSelectedTagIds(prev => [...prev, tagToSelect.id]);
+      
       setIsAddingTag(false);
       setNewTagName('');
     }
@@ -440,14 +444,14 @@ export function RecordModal({
                                 setEditHabitDays(habit.repeatDays || []);
                                 setEditHabitColor(habit.color || defaultColor);
                               }}
-                              className="p-2 text-gray-300 opacity-0 group-hover:opacity-100 hover:text-blue-500 rounded-lg transition-all"
+                              className="p-2 text-gray-400 hover:text-blue-500 rounded-lg transition-all"
                               title="编辑"
                             >
                               <RotateCcw size={16} className="rotate-180" />
                             </button>
                             <button
                               onClick={() => onDeleteRecord(habit.id, 'daily', habit.content)}
-                              className="p-2 text-gray-300 opacity-0 group-hover:opacity-100 hover:text-red-500 rounded-lg transition-all"
+                              className="p-2 text-gray-400 hover:text-red-500 rounded-lg transition-all"
                               title="删除"
                             >
                               <Trash2 size={16} />

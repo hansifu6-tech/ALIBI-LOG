@@ -188,11 +188,20 @@ export const useSupabaseData = (userId: string | null | undefined) => {
       const dailyRecords = aggregateDailyRows(dailyRows);
 
       const specialRecords = specialRows.map((row: any) => {
-        // Map stored tag names back to local tag IDs
-        const storedTagNames: string[] = Array.isArray(row.tags) ? row.tags : [];
+        // Map stored tags (IDs or Names) back to local tag IDs
+        const storedTags: string[] = Array.isArray(row.tags) ? row.tags : [];
         const localTags: RecordTag[] = userId ? loadTags(userId) : DEFAULT_TAGS;
-        const tagIds = storedTagNames
-          .map(name => localTags.find(t => t.name === name)?.id)
+        
+        const tagIds = storedTags
+          .map(tag => {
+            // Check if stored value is already an existing ID
+            const byId = localTags.find(t => t.id === tag);
+            if (byId) return byId.id;
+            // Fallback: Check if stored value is a name (for legacy data)
+            const byName = localTags.find(t => t.name === tag);
+            if (byName) return byName.id;
+            return null;
+          })
           .filter((id): id is string => !!id);
 
         return {
@@ -267,10 +276,6 @@ export const useSupabaseData = (userId: string | null | undefined) => {
         tags: record.repeatDays || [0, 1, 2, 3, 4, 5, 6],
       };
     } else {
-      // Convert tagIds to tag name strings for storage
-      const localTags: RecordTag[] = userId ? loadTags(userId) : DEFAULT_TAGS;
-      const tagNames = (record.tagIds || []).map(id => localTags.find(t => t.id === id)?.name).filter((n): n is string => !!n);
-
       row = {
         user_id: userId,
         type: 'special',
@@ -278,7 +283,7 @@ export const useSupabaseData = (userId: string | null | undefined) => {
         color: encodeColor(record.color),
         image_url: safeImageUrl(record.imageUrls?.[0]),
         mood: record.dateStr ?? null,
-        tags: tagNames,
+        tags: record.tagIds || [], // Save UUIDs directly
       };
     }
 
@@ -351,10 +356,6 @@ export const useSupabaseData = (userId: string | null | undefined) => {
     if (!userId) return;
 
     if (record.type === 'special') {
-      // Convert tagIds to tag name strings for storage
-      const localTags: RecordTag[] = userId ? loadTags(userId) : DEFAULT_TAGS;
-      const tagNames = (record.tagIds || []).map(id => localTags.find(t => t.id === id)?.name).filter((n): n is string => !!n);
-
       const row = {
         id: record.id,
         user_id: userId,
@@ -363,7 +364,7 @@ export const useSupabaseData = (userId: string | null | undefined) => {
         color: encodeColor(record.color),
         image_url: safeImageUrl(record.imageUrls?.[0]),
         mood: record.dateStr ?? null,
-        tags: tagNames,
+        tags: record.tagIds || [], // Save UUIDs directly
       };
 
       // Optimistic update
@@ -494,8 +495,8 @@ export const useSupabaseData = (userId: string | null | undefined) => {
   };
 
   // ─── Tag CRUD (Supabase + localStorage cache) ──
-  const addTag = async (tag: RecordTag) => {
-    if (!userId) return;
+  const addTag = async (tag: RecordTag): Promise<RecordTag | null> => {
+    if (!userId) return null;
     // Optimistic local update
     setTags(prev => { const next = [...prev, tag]; saveTags(userId, next); return next; });
     setAllAvailableTags(prev => [...prev.filter(t => t.name !== tag.name), tag]);
@@ -507,12 +508,15 @@ export const useSupabaseData = (userId: string | null | undefined) => {
       .single();
     if (error) {
       console.warn('[Supabase] addTag error:', error.message);
+      return null;
     } else if (data) {
       // Replace temp ID with real DB id
       const realTag = { id: String(data.id), name: data.name };
       setTags(prev => { const next = prev.map(t => t.name === tag.name ? realTag : t); saveTags(userId, next); return next; });
       setAllAvailableTags(prev => prev.map(t => t.name === tag.name ? realTag : t));
+      return realTag;
     }
+    return null;
   };
 
   const deleteTag = async (tagId: string) => {
