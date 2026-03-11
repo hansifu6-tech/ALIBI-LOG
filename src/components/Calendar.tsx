@@ -145,15 +145,40 @@ export function Calendar({
         return;
       }
 
+      // 1. 采用“离屏克隆”渲染策略
+      const cloneContainer = document.createElement('div');
+      cloneContainer.style.position = 'fixed';
+      cloneContainer.style.left = '-9999px';
+      cloneContainer.style.top = '0';
+      // 2. 强制锁定“虚拟宽度”
+      cloneContainer.style.width = '750px';
+
+      const clone = element.cloneNode(true) as HTMLElement;
+      // 3. 移除自动居中逻辑
+      clone.style.margin = '0';
+      clone.style.position = 'static';
+      clone.style.width = '750px';
+      clone.style.maxWidth = 'none';
+      clone.classList.remove('mx-auto', 'justify-center');
+
+      cloneContainer.appendChild(clone);
+      document.body.appendChild(cloneContainer);
+
       try {
         const h2c = (window as any).html2canvas || html2canvas;
-        const canvas = await h2c(element, {
+        const canvas = await h2c(clone, {
           useCORS: true,
           scale: 2, // High resolution
           backgroundColor: '#ffffff',
-          logging: true, // Enable logging as requested
-          allowTaint: true // Increase compatibility
+          logging: true,
+          allowTaint: true,
+          // 4. 渲染配置参数调优：保证宽度严格一致并原点对齐
+          windowWidth: 750,
+          x: 0,
+          y: 0
         });
+
+        document.body.removeChild(cloneContainer);
 
         const image = canvas.toDataURL('image/png');
         const link = document.createElement('a');
@@ -165,6 +190,9 @@ export function Calendar({
         setIsPosterLoading(false);
         onCloseShareModal();
       } catch (error) {
+        if (cloneContainer && cloneContainer.parentNode) {
+          document.body.removeChild(cloneContainer);
+        }
         console.error('Poster generation failed:', error);
         alert('生成失败，请检查控制台错误日志。');
         setIsPosterLoading(false);
@@ -487,8 +515,7 @@ export function Calendar({
           style={{ 
             backgroundColor: '#FDFCF9', 
             padding: '100px 80px', 
-            // DYNAMIC WIDTH: 500px for 1-3 months, 1200px for 4+ months
-            width: posterData.months.length <= 3 ? '500px' : '1200px', 
+            width: '750px', // Static width to prevent viewport scaling issues
             fontFamily: '"Inter", "Segoe UI", "PingFang SC", sans-serif',
             color: '#0f172a'
           }}
@@ -525,9 +552,8 @@ export function Calendar({
 
           <div style={{ 
             display: 'grid', 
-            gap: '80px', 
-            // DYNAMIC LAYOUT: Single column for 1-3 months, 2 columns for 4+
-            gridTemplateColumns: posterData.months.length <= 3 ? '1fr' : 'repeat(2, 1fr)',
+            gap: '60px', 
+            gridTemplateColumns: '1fr', // Force single column for 750px width stability
             width: '100%',
             justifyContent: 'center'
           }}>
@@ -598,21 +624,21 @@ export function Calendar({
                       <div style={{ 
                         flex: 1, 
                         display: 'flex', 
-                        alignItems: 'flex-end', // Stick to bottom
+                        alignItems: 'flex-end',
                         justifyContent: 'center',
-                        gap: '3px',
-                        paddingBottom: '2px' // Spacer from cell edge
+                        paddingBottom: '2px'
                       }}>
                         {d.isWithinRange && posterData.selectedHabits.map((h: any) => {
                           const isDone = (h.completedDates || []).includes(d.dateStr);
-                          if (!isDone) return null;
+                        if (!isDone) return null;
                           return (
                             <div key={h.id} style={{ 
                               width: '7px', 
                               height: '7px', 
                               borderRadius: '50%', 
                               backgroundColor: h.safeColor.bg,
-                              boxShadow: `0 1px 2px ${h.safeColor.bg}30`
+                              boxShadow: `0 1px 2px ${h.safeColor.bg}30`,
+                              margin: '0 1.5px' // Use margin instead of flex gap
                             }} />
                           );
                         })}
@@ -622,31 +648,38 @@ export function Calendar({
                 </div>
 
                 {/* Timeline Styles Special Events */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {m.days.filter((d: any) => d.specialEvents.length > 0).map((d: any) => (
-                    <div key={d.dateStr} style={{ display: 'flex', gap: '20px' }}>
+                    <div key={d.dateStr} style={{ display: 'flex', marginBottom: '24px' }}>
                       <div style={{ 
                         fontSize: '14px', 
                         fontWeight: '900', 
                         color: '#64748b', 
                         width: '24px', 
+                        marginRight: '20px', 
                         textAlign: 'right',
                         paddingTop: '2px'
                       }}>
                         {String(d.day).padStart(2, '0')}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
-                        {d.specialEvents.map((e: any) => (
-                          <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', borderBottom: '1px dashed #f1f5f9', paddingBottom: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                        {d.specialEvents.map((e: any, eIdx: number) => (
+                          <div key={e.id} style={{ 
+                            display: 'flex', 
+                            alignItems: 'flex-start', 
+                            paddingBottom: '12px',
+                            marginBottom: eIdx === d.specialEvents.length - 1 ? '0' : '16px',
+                            borderBottom: '1px dashed #f1f5f9'
+                          }}>
                             <div style={{ 
-                              width: '8px', 
-                              height: '8px', 
-                              borderRadius: '50%', 
-                              border: `2px solid ${e.safeColor.bg}`, 
-                              marginTop: '6px',
+                              width: '4px', 
+                              height: '24px', 
+                              borderRadius: '2px', 
+                              backgroundColor: e.safeColor.bg,
+                              marginRight: '12px',
                               flexShrink: 0
                             }} />
-                            <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', lineHeight: '1.4' }}>
+                            <span style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', lineHeight: '24px' }}>
                               {e.title || (e.tagIds.map((tid: string) => tags.find(t => t.id === tid)?.name).filter(Boolean).join(', '))}
                             </span>
                           </div>
@@ -675,18 +708,18 @@ export function Calendar({
                 display: 'flex', 
                 flexWrap: 'wrap', 
                 justifyContent: 'center', 
-                gap: '24px 40px',
                 maxWidth: '900px',
                 margin: '0 auto'
               }}>
                 {posterData.selectedHabits.map((h: any) => (
-                  <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div key={h.id} style={{ display: 'flex', alignItems: 'center', marginRight: '40px', marginBottom: '24px' }}>
                     <div style={{ 
                       width: '10px', 
                       height: '10px', 
                       borderRadius: '50%', 
                       backgroundColor: h.safeColor.bg,
-                      boxShadow: `0 1px 3px ${h.safeColor.bg}40`
+                      boxShadow: `0 1px 3px ${h.safeColor.bg}40`,
+                      marginRight: '10px'
                     }} />
                     <span style={{ fontSize: '14px', fontWeight: '700', color: '#475569', letterSpacing: '0.02em' }}>
                       {h.content}
