@@ -194,6 +194,9 @@ function App() {
             tags={tags}
             onEditRecord={(record, dateStr) => handleOpenModal(null, { record, dateStr })}
             onPreviewImage={setPreviewImage}
+            onOpenModal={handleOpenModal}
+            filterTagIds={filterTagIds}
+            hideAllSpecialEvents={hideAllSpecialEvents}
           />
         )}
       </div>

@@ -246,7 +246,7 @@ export function Calendar({
       <div className="flex-1 flex flex-col overflow-y-auto w-full md:max-w-5xl mx-auto items-center px-1 sm:px-6 overflow-x-hidden md:h-[calc(100vh-120px)] md:overflow-hidden">
         
         {/* Weekdays Header */}
-        <div className="shrink-0 w-full py-3 z-30">
+        <div className="hidden md:flex shrink-0 w-full py-3 z-30">
           <div className="grid grid-cols-7 gap-0.5 md:gap-2 w-full">
             {['周日', '周一', '周二', '周三', '周四', '周五', '周六'].map(d => (
               <div key={d} className="text-center text-xs font-bold text-gray-400 tracking-widest">
@@ -257,7 +257,7 @@ export function Calendar({
         </div>
 
         {/* Grid Area — rows sync height via CSS grid auto-rows */}
-        <div className="flex-1 w-full pb-8 flex flex-col gap-0.5 md:gap-2">
+        <div className="hidden md:flex flex-1 w-full pb-8 flex-col gap-0.5 md:gap-2">
           {(weeks || []).map((week, wIdx) => (
             <div key={wIdx} className="grid grid-cols-7 gap-0.5 md:gap-2 justify-items-stretch content-start" style={{ gridAutoRows: '1fr' }}>
               {(week || []).map((cell, cIdx) => {
@@ -371,6 +371,104 @@ export function Calendar({
               })}
             </div>
           ))}
+        </div>
+
+        {/* Mobile View — Vertical Flow Cards */}
+        <div className="md:hidden flex flex-col w-full pb-20 gap-2 pt-2">
+          {(weeks || []).flat().filter(c => c && c.date).map((cell, cIdx) => {
+            if (!cell || !cell.date) return null;
+            const dateStr = `${cell.date.getFullYear()}-${String(cell.date.getMonth() + 1).padStart(2, '0')}-${String(cell.date.getDate()).padStart(2, '0')}`;
+            const dayOfWeek = cell.date.getDay();
+            const allRecords = records || [];
+            
+            const dailyRecords = allRecords.filter(r => {
+              if (!r || r.type !== 'daily') return false;
+              const isRepeatDay = !r.repeatDays || r.repeatDays.includes(dayOfWeek);
+              const isCompleted = (r.completedDates || []).includes(dateStr);
+              return isRepeatDay || isCompleted;
+            }).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)) as DailyRecord[];
+
+            const dayEvents = (allRecords.filter(r => r && r.type === 'special' && r.dateStr === dateStr) as SpecialRecord[])
+              .filter(event => {
+                if (hideAllSpecialEvents) return false;
+                if (filterTagIds && filterTagIds.length > 0) {
+                  return (event.tagIds || []).some(tagId => filterTagIds.includes(tagId));
+                }
+                return true;
+              });
+
+            const shortWeekday = cell.date.toLocaleDateString('en-US', { weekday: 'short' });
+
+            return (
+              <div 
+                key={`mobile-${cIdx}`}
+                onClick={() => onOpenModal(cell.date)}
+                className={`flex w-full h-28 rounded-xl overflow-hidden shadow-sm border bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 active:scale-[0.98] transition-all duration-200`}
+              >
+                {/* Left Date Region (Compact) */}
+                <div className={`w-16 shrink-0 flex flex-col items-center justify-center border-r bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800`}>
+                  <span className={`text-2xl font-black leading-none tracking-tight ${cell.isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-gray-200'}`}>{cell.label}</span>
+                  <span className={`text-[10px] font-bold mt-1 uppercase tracking-widest ${cell.isToday ? 'text-blue-500' : 'text-slate-400'}`}>{shortWeekday}</span>
+                </div>
+
+                {/* Right Content Region */}
+                <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900">
+                  {/* Habits area - High Density & Large Interactive Squares */}
+                  <div className={`px-2.5 py-1.5 flex-1 flex flex-wrap gap-1.5 items-center content-center bg-white dark:bg-gray-900
+                    ${(dailyRecords.length > 0 && dayEvents.length > 0) ? 'border-b border-gray-50 dark:border-gray-800/80' : ''}`}>
+                    {dailyRecords.map(record => {
+                      const isCompleted = (record.completedDates || []).includes(dateStr);
+                      const firstChar = record.content?.charAt(0) || '?';
+                      return (
+                        <div
+                          key={`mobile-habit-${record.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateRecord({ ...record, completedDates: isCompleted ? (record.completedDates || []).filter(d => d !== dateStr) : [...(record.completedDates || []), dateStr] });
+                          }}
+                          className={`w-[38px] h-[38px] rounded-lg flex items-center justify-center text-xs font-bold transition-all
+                            ${isCompleted 
+                              ? 'shadow-sm border border-black/5 dark:border-white/5' 
+                              : 'bg-gray-100 dark:bg-gray-800/80 text-gray-400 border border-dashed border-gray-200'}`}
+                          style={isCompleted ? { backgroundColor: record.color?.bg, color: record.color?.text } : {}}
+                        >
+                          {firstChar}
+                        </div>
+                      );
+                    })}
+                    {dailyRecords.length === 0 && (
+                      <span className="text-[11px] text-gray-400/60 font-medium italic mt-1 ml-1">No habits scheduled</span>
+                    )}
+                  </div>
+
+                  {/* Special Events area - Matching Height Interactivity */}
+                  {dayEvents.length > 0 && (
+                    <div className="px-2.5 py-1.5 flex flex-col gap-1 justify-center bg-white dark:bg-gray-900 overflow-hidden">
+                      {dayEvents.slice(0, 1).map(record => {
+                        const displayTitle = record.title || getRecordTagsString(record);
+                        return (
+                          <div
+                            key={`mobile-special-${record.id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenModal(cell.date, { record, dateStr });
+                            }}
+                            className="h-[38px] flex items-center px-3 rounded-lg shadow-sm truncate font-bold text-left tracking-tight text-[10px]"
+                            style={{ backgroundColor: record.color?.bg, color: record.color?.text }}
+                          >
+                            {displayTitle}
+                          </div>
+                        );
+                      })}
+                      {dayEvents.length > 1 && (
+                        <span className="text-[9px] text-gray-400 pl-1 font-bold italic">+{dayEvents.length - 1} more event</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
       <ShareModal 
