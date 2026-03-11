@@ -242,12 +242,12 @@ export function Calendar({
         </button>
       </div>
 
-      {/* Grid Scroll Area */}
-      <div className="flex-1 flex flex-col overflow-y-auto w-full max-w-7xl mx-auto items-center px-4 sm:px-6">
+      {/* Grid Scroll Area — px-1 mobile, px-6 desktop. md: limited to one screen */}
+      <div className="flex-1 flex flex-col overflow-y-auto w-full md:max-w-5xl mx-auto items-center px-1 sm:px-6 overflow-x-hidden md:h-[calc(100vh-120px)] md:overflow-hidden">
         
         {/* Weekdays Header */}
         <div className="shrink-0 w-full py-3 z-30">
-          <div className="grid grid-cols-7 gap-1 sm:gap-2 w-full">
+          <div className="grid grid-cols-7 gap-0.5 md:gap-2 w-full">
             {['周日', '周一', '周二', '周三', '周四', '周五', '周六'].map(d => (
               <div key={d} className="text-center text-xs font-bold text-gray-400 tracking-widest">
                 {d}
@@ -256,10 +256,10 @@ export function Calendar({
           </div>
         </div>
 
-        {/* Grid Area */}
-        <div className="flex-1 w-full pb-8 flex flex-col gap-1 sm:gap-2">
+        {/* Grid Area — rows sync height via CSS grid auto-rows */}
+        <div className="flex-1 w-full pb-8 flex flex-col gap-0.5 md:gap-2">
           {(weeks || []).map((week, wIdx) => (
-            <div key={wIdx} className="grid grid-cols-7 gap-1 sm:gap-2 flex-1 min-h-[100px]">
+            <div key={wIdx} className="grid grid-cols-7 gap-0.5 md:gap-2 justify-items-stretch content-start" style={{ gridAutoRows: '1fr' }}>
               {(week || []).map((cell, cIdx) => {
                 if (!cell || !cell.date) {
                   return <div key={cIdx} className="bg-transparent rounded-xl" />;
@@ -290,26 +290,27 @@ export function Calendar({
                     // Level 3: Show all
                     return true;
                   });
-                
                 return (
-                  <div
+                <div
                     key={cIdx}
                     onClick={() => onOpenModal(cell.date)}
                     className={`group relative rounded-xl border flex flex-col transition-all duration-200 ease-out cursor-pointer
+                      min-h-[96px] md:min-h-0 md:h-full md:max-h-[14vh] md:aspect-square
                       ${cell.isToday 
                         ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-sm' 
                         : 'bg-white dark:bg-gray-900 border-gray-200/60 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50'}
-                      hover:scale-105 hover:z-20 hover:shadow-lg active:scale-95 hover:ring-2 ring-blue-400 ring-offset-2 dark:ring-offset-gray-950 min-h-[100px] h-auto`}
+                      hover:scale-105 hover:z-20 hover:shadow-lg active:scale-95 hover:ring-2 ring-blue-400 ring-offset-2 dark:ring-offset-gray-950`}
                   >
-                    <div className="flex justify-between items-start w-full p-2 pb-1 shrink-0">
-                      <span className={`text-[10px] sm:text-xs font-bold leading-none
+                    {/* Date number — 11px mobile / xs desktop */}
+                    <div className="flex justify-between items-start w-full p-1 md:p-3 pb-0.5 md:pb-1 shrink-0">
+                      <span className={`text-[11px] md:text-xs font-bold leading-none
                         ${cell.isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100'}`}>
                         {cell.label}
                       </span>
                     </div>
 
-                    {/* Habits Area: 24px squares, 13px bold font */}
-                    <div className="habit-container flex flex-wrap gap-1 p-1 min-h-[32px]">
+                    {/* Habits — 20×20 mobile / 24×24 desktop, at least 2 per row on mobile */}
+                    <div className="habit-container flex flex-wrap gap-0.5 md:gap-1 p-0.5 md:p-1 min-h-[28px] md:min-h-[32px]">
                       {(dailyRecords || []).map(record => {
                         const isCompleted = (record.completedDates || []).includes(dateStr);
                         const firstChar = record.content?.charAt(0) || '?';
@@ -326,7 +327,7 @@ export function Calendar({
                                   : [...(record.completedDates || []), dateStr]
                               });
                             }}
-                            className={`w-6 h-6 rounded-md transition-all duration-200 shrink-0 flex items-center justify-center text-[13px] font-bold select-none hover:scale-110 active:scale-90
+                            className={`w-5 h-5 sm:w-6 md:w-2.5 md:h-2.5 rounded-sm md:rounded transition-all duration-200 shrink-0 flex items-center justify-center text-[11px] sm:text-[13px] md:text-[8px] font-bold select-none active:scale-90 sm:hover:scale-110
                               ${isCompleted 
                                 ? 'shadow-sm border-2 border-solid border-black/10 dark:border-white/10' 
                                 : 'bg-gray-100 dark:bg-gray-800 border-[1.5px] border-dashed border-gray-300 dark:border-gray-700 text-gray-400'}
@@ -343,7 +344,7 @@ export function Calendar({
                     <div className="border-t border-gray-100 dark:border-gray-800 mx-1" />
 
                     {/* Events Area: Full text labels */}
-                    <div className="event-container flex flex-col gap-1 p-1 flex-1">
+                    <div className="event-container flex flex-col gap-0.5 md:gap-1 p-1 flex-1 overflow-hidden">
                       {(dayEvents || []).map(record => {
                         const displayTitle = record.title || getRecordTagsString(record);
                         return (

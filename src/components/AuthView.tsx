@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { auth } from '../firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { supabase } from '../supabase';
 import { LogIn, UserPlus, Calendar } from 'lucide-react';
 
 export function AuthView() {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
+  const [email, setEmail]     = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,12 +16,21 @@ export function AuthView() {
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+        if (err) throw err;
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const { error: err } = await supabase.auth.signUp({ email, password });
+        if (err) throw err;
+        // After sign-up Supabase may need email confirmation depending on project settings.
+        // Show a hint instead of crashing.
+        setError('注册成功！如需验证邮箱请查收邮件，然后返回登录。');
+        setIsLogin(true);
+        setLoading(false);
+        return;
       }
-    } catch (err: any) {
-      setError(err.message || '操作失败，请检查邮箱和密码');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '操作失败，请检查邮箱和密码';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -43,8 +51,8 @@ export function AuthView() {
           <div className="space-y-4">
             <div>
               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2 px-1">邮箱地址</label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -54,20 +62,26 @@ export function AuthView() {
             </div>
             <div>
               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2 px-1">访问密码</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400 text-sm"
                 placeholder="••••••••"
+                minLength={6}
               />
             </div>
           </div>
 
-          {error && <p className="text-red-500 text-xs text-center px-2 animate-pulse">{error}</p>}
+          {/* Error / info message */}
+          {error && (
+            <p className={`text-xs text-center px-2 ${error.startsWith('注册成功') ? 'text-green-500' : 'text-red-500 animate-pulse'}`}>
+              {error}
+            </p>
+          )}
 
-          <button 
+          <button
             type="submit"
             disabled={loading}
             className={`w-full py-4 rounded-xl font-bold text-white shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2
@@ -83,9 +97,9 @@ export function AuthView() {
           </button>
 
           <div className="flex items-center justify-center gap-2 pt-2">
-            <button 
+            <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => { setIsLogin(!isLogin); setError(''); }}
               className="text-sm font-medium text-gray-500 hover:text-blue-500 transition-colors"
             >
               {isLogin ? '还没有账号？立即注册' : '已有账号？返回登录'}
@@ -94,7 +108,7 @@ export function AuthView() {
         </form>
 
         <div className="px-8 py-4 bg-gray-50/50 dark:bg-gray-800/30 text-center border-t border-gray-100 dark:border-gray-800">
-          <p className="text-[10px] text-gray-400">数据将安全加密存储于私有云空间</p>
+          <p className="text-[10px] text-gray-400">数据将安全加密存储于私有云空间 · Powered by Supabase</p>
         </div>
       </div>
     </div>

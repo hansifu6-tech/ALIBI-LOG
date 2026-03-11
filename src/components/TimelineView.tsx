@@ -1,14 +1,15 @@
 import { useMemo } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, Edit3 } from 'lucide-react';
 import type { SpecialRecord, RecordTag } from '../types';
 
 interface TimelineViewProps {
   records: SpecialRecord[];
   tags: RecordTag[];
   onEditRecord: (record: SpecialRecord, dateStr: string) => void;
+  onPreviewImage: (url: string) => void;
 }
 
-export function TimelineView({ records, tags, onEditRecord }: TimelineViewProps) {
+export function TimelineView({ records, tags, onEditRecord, onPreviewImage }: TimelineViewProps) {
   // Group records by date string, sorted descending
   const groupedRecords = useMemo(() => {
     const groups: { [key: string]: SpecialRecord[] } = {};
@@ -67,12 +68,11 @@ export function TimelineView({ records, tags, onEditRecord }: TimelineViewProps)
               </div>
 
               {/* Card Container */}
-              <div className="bg-white dark:bg-gray-800 rounded-[32px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-gray-700/50 overflow-hidden transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5">
+              <div className="bg-white dark:bg-gray-800 rounded-[32px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-gray-700/50 overflow-hidden transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
                 {items.map((record, index) => (
                   <div 
                     key={record.id} 
-                    onClick={() => onEditRecord(record, record.dateStr)}
-                    className={`p-4 sm:p-6 cursor-pointer transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-700/30 ${
+                    className={`p-4 sm:p-6 transition-colors ${
                       index > 0 ? 'border-t border-gray-50 dark:border-gray-700/50' : ''
                     }`}
                   >
@@ -82,19 +82,30 @@ export function TimelineView({ records, tags, onEditRecord }: TimelineViewProps)
                       
                       <div className="flex-1 space-y-3">
                         {/* Title & Tags */}
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-800 dark:text-gray-100 leading-tight">
-                            {record.title}
-                          </h3>
-                          {record.tagIds.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {record.tagIds.map(tagId => (
-                                <span key={tagId} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                                  {getTagName(tagId)}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-gray-100 leading-tight">
+                              {record.title}
+                            </h3>
+                            {(record.tagIds ?? []).length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {(record.tagIds ?? []).map(tagId => (
+                                  <span key={tagId} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                    {getTagName(tagId)}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Edit Button */}
+                          <button 
+                            onClick={() => onEditRecord(record, record.dateStr)}
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-slate-400 hover:text-blue-500 transition-all active:scale-90"
+                            title="编辑记录"
+                          >
+                            <Edit3 size={18} />
+                          </button>
                         </div>
 
                         {/* Image Grid (Ins Style) */}
@@ -105,13 +116,19 @@ export function TimelineView({ records, tags, onEditRecord }: TimelineViewProps)
                             'grid-cols-2 aspect-square'
                           }`}>
                             {record.imageUrls.slice(0, 4).map((url, i) => (
-                              <div key={i} className={`relative ${
-                                record.imageUrls.length === 3 && i === 0 ? 'row-span-2' : ''
-                              }`}>
+                              <div 
+                                key={i} 
+                                className={`relative cursor-zoom-in group/img overflow-hidden ${
+                                  record.imageUrls.length === 3 && i === 0 ? 'row-span-2' : ''
+                                }`}
+                                onClick={() => onPreviewImage(url)}
+                              >
                                 <img 
                                   src={url} 
                                   alt="gallery" 
-                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="w-full h-full object-cover transition-all duration-500 group-hover/img:scale-110 group-hover/img:brightness-110"
                                 />
                                 {record.imageUrls.length > 4 && i === 3 && (
                                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white font-bold text-lg">

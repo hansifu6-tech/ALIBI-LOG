@@ -2,12 +2,35 @@ import { useState, useEffect } from 'react';
 import { Calendar as CalendarView } from './components/Calendar';
 import { TimelineView } from './components/TimelineView';
 import { RecordModal } from './components/RecordModal';
-import { ImageLightbox } from './components/ImageLightbox';
 import { AuthView } from './components/AuthView';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabase } from './supabase';
-import { LogOut, User as UserIcon, Share2, LayoutGrid, List } from 'lucide-react';
+import { LogOut, User as UserIcon, Share2, LayoutGrid, List, X } from 'lucide-react';
 import type { CalendarRecord, SpecialRecord } from './types';
+
+// ── Inline component (avoids external file import issue on Vercel) ────
+function ImageLightbox({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-500 cursor-zoom-out"
+      onClick={onClose}
+    >
+      <button
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all z-[110] active:scale-90"
+      >
+        <X size={28} />
+      </button>
+      <div className="relative max-w-[95vw] max-h-[90vh] flex items-center justify-center animate-in fade-in zoom-in-95 duration-500 pointer-events-none">
+        <img
+          src={imageUrl}
+          alt="Preview"
+          className="max-w-full max-h-full object-contain shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-lg pointer-events-auto transition-transform hover:scale-[1.01]"
+        />
+      </div>
+    </div>
+  );
+}
 
 function App() {
   // ── Supabase Auth state ─────────────────────────────────────────────

@@ -4,6 +4,7 @@ import { X, Check, Trash2, Eye, EyeOff, RotateCcw, Camera } from 'lucide-react';
 import { presetColors } from '../utils/colors';
 import type { CalendarColor } from '../utils/colors';
 import type { CalendarRecord, RecordTag, DailyRecord, SpecialRecord } from '../types';
+import { uploadImages } from '../hooks/useSupabaseData';
 
 interface RecordModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface RecordModalProps {
   onDeleteRecord: (id: string, type: 'daily' | 'special', content?: string) => void;
   editingRecord: {record: CalendarRecord, dateStr: string} | null;
   tags: RecordTag[];
+  allAvailableTags: RecordTag[];   // Cloud tag suggestions from Supabase
   onAddTag: (tag: RecordTag) => void;
   onDeleteTag: (tagId: string) => void;
   records: CalendarRecord[];
@@ -22,6 +24,7 @@ interface RecordModalProps {
   setFilterTagIds: React.Dispatch<React.SetStateAction<string[]>>;
   hideAllSpecialEvents: boolean;
   setHideAllSpecialEvents: React.Dispatch<React.SetStateAction<boolean>>;
+  onPreviewImage: (url: string) => void;
 }
 
 const WEEKDAYS = [
@@ -43,13 +46,15 @@ export function RecordModal({
   onDeleteRecord, 
   editingRecord, 
   tags, 
+  allAvailableTags,
   onAddTag, 
   onDeleteTag, 
   records,
   filterTagIds,
   setFilterTagIds,
   hideAllSpecialEvents,
-  setHideAllSpecialEvents
+  setHideAllSpecialEvents,
+  onPreviewImage
 }: RecordModalProps) {
   const [activeTab, setActiveTab] = useState<'daily' | 'special'>('daily');
   
@@ -76,40 +81,14 @@ export function RecordModal({
   const [newTagName, setNewTagName] = useState('');
 
   // Image Upload State
-  const [specialImages, setSpecialImages] = useState<string[]>([]);
-  const [isCompressing, setIsCompressing] = useState(false);
+  // existingImageUrls = already-uploaded cloud URLs (when editing a record)
+  // newImageFiles     = File objects the user just picked (not yet uploaded)
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Image Compression Utility
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const maxDim = 1000;
-
-          if (width > height && width > maxDim) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else if (height > maxDim) {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.7));
-        };
-        img.src = e.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    });
-  };
+  // Local preview URLs for new files (revoked on unmount)
+  const newImagePreviews = newImageFiles.map(f => URL.createObjectURL(f));
 
   // Defensive arrays
   const safeTags = tags || [];
@@ -137,7 +116,8 @@ export function RecordModal({
           }
            setSelectedTagIds(spec.tagIds || []);
           setSpecialColor(spec.color || defaultColor);
-          setSpecialImages(spec.imageUrls || []);
+          setExistingImageUrls(spec.imageUrls || []);
+          setNewImageFiles([]);
         }
       } else {
         setDailyContent('');
@@ -156,7 +136,8 @@ export function RecordModal({
         setSelectedTagIds([]);
         const initialSpecialColor = (defaultColors.length > 10) ? defaultColors[10] : defaultColor;
         setSpecialColor(initialSpecialColor); 
-        setSpecialImages([]);
+        setExistingImageUrls([]);
+        setNewImageFiles([]);
       }
       setIsAddingTag(false);
       setNewTagName('');
@@ -191,38 +172,49 @@ export function RecordModal({
     onClose(); 
   };
 
-  const handleSaveSpecial = () => {
+  const handleSaveSpecial = async () => {
     if (!specialTitle.trim()) return;
     if (!isValidDate(selYear, selMonth, selDay)) {
       setDateError('请输入正确的日期');
       return;
     }
     setDateError('');
+    setIsUploading(true);
 
-    const dateStr = `${selYear}-${String(selMonth).padStart(2, '0')}-${String(selDay).padStart(2, '0')}`;
+    try {
+      // Upload any new files to Supabase Storage
+      const uploadedUrls = newImageFiles.length > 0
+        ? await uploadImages(newImageFiles)
+        : [];
 
-    if (editingRecord && editingRecord.record.type === 'special') {
-      onUpdateRecord({
-        ...editingRecord.record,
-        title: specialTitle.trim(),
-        dateStr,
-        tagIds: selectedTagIds,
-        color: specialColor,
-        imageUrls: specialImages,
-      } as SpecialRecord);
-    } else {
-      onAddRecord({
-        id: `special_${Date.now()}`,
-        type: 'special',
-        createdAt: Date.now(),
-        title: specialTitle.trim(),
-        dateStr,
-        tagIds: selectedTagIds,
-        color: specialColor,
-        imageUrls: specialImages,
-      } as SpecialRecord);
+      const allImageUrls = [...existingImageUrls, ...uploadedUrls];
+      const dateStr = `${selYear}-${String(selMonth).padStart(2, '0')}-${String(selDay).padStart(2, '0')}`;
+
+      if (editingRecord && editingRecord.record.type === 'special') {
+        await onUpdateRecord({
+          ...editingRecord.record,
+          title: specialTitle.trim(),
+          dateStr,
+          tagIds: selectedTagIds,
+          color: specialColor,
+          imageUrls: allImageUrls,
+        } as SpecialRecord);
+      } else {
+        await onAddRecord({
+          id: `special_${Date.now()}`,
+          type: 'special',
+          createdAt: Date.now(),
+          title: specialTitle.trim(),
+          dateStr,
+          tagIds: selectedTagIds,
+          color: specialColor,
+          imageUrls: allImageUrls,
+        } as SpecialRecord);
+      }
+      onClose();
+    } finally {
+      setIsUploading(false);
     }
-    onClose();
   };
 
   const handleAddNewTag = () => {
@@ -360,7 +352,7 @@ export function RecordModal({
                           </div>
                           <button 
                             onClick={() => onDeleteRecord(habit.id, 'daily', habit.content)} 
-                            className="p-2 text-gray-300 hover:text-red-500 rounded-xl transition-all opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            className="p-3 md:p-2 text-gray-400 md:text-gray-300 md:opacity-0 md:group-hover:opacity-100 hover:text-red-500 rounded-xl transition-all hover:bg-red-50 dark:hover:bg-red-900/20"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -453,6 +445,33 @@ export function RecordModal({
                       <button onClick={() => setIsAddingTag(true)} className="px-3 py-1.5 rounded-full border border-dashed border-gray-400 text-gray-400 text-xs flex items-center gap-1 hover:bg-gray-50">+ 添加标签</button>
                     )}
                   </div>
+
+                  {/* Cloud tag suggestion bubbles — tags saved in Supabase */}
+                  {allAvailableTags.filter(t => !safeTags.some(s => s.id === t.id)).length > 0 && (
+                    <div className="pt-1">
+                      <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1.5">历史标签快选</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {allAvailableTags
+                          .filter(t => !safeTags.some(s => s.id === t.id))
+                          .map(tag => (
+                            <button
+                              key={tag.id}
+                              onClick={() => {
+                                // add to local tags list then select it
+                                onAddTag(tag);
+                                setSelectedTagIds(prev =>
+                                  prev.includes(tag.id) ? prev : [...prev, tag.id]
+                                );
+                              }}
+                              className="px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 text-[11px] font-medium hover:bg-purple-100 transition-all"
+                            >
+                              {tag.name}
+                            </button>
+                          ))
+                        }
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-3">
@@ -465,41 +484,54 @@ export function RecordModal({
                           className="hidden" 
                           accept="image/*"
                           multiple
-                          onChange={async (e) => {
+                          onChange={(e) => {
                             const files = Array.from(e.target.files || []);
                             if (files.length > 0) {
-                              setIsCompressing(true);
-                              try {
-                                const newImages = await Promise.all(
-                                  files.map(file => compressImage(file))
-                                );
-                                setSpecialImages(prev => [...prev, ...newImages]);
-                              } finally {
-                                setIsCompressing(false);
-                              }
+                              setNewImageFiles(prev => [...prev, ...files]);
                             }
                           }}
                         />
-                        {isCompressing ? (
+                        {isUploading ? (
                           <div className="w-4 h-4 border-2 border-purple-600/30 border-t-purple-600 rounded-full animate-spin" />
                         ) : (
                           <Camera size={18} className="text-gray-400" />
                         )}
                         <span className="text-xs font-bold text-gray-500">
-                          {isCompressing ? '处理中...' : (specialImages.length > 0 ? `已添加 ${specialImages.length} 张图片` : '添加图片')}
+                          {isUploading ? '上传中...' : ((existingImageUrls.length + newImageFiles.length) > 0 ? `已添加 ${existingImageUrls.length + newImageFiles.length} 张图片` : '添加图片')}
                         </span>
                       </label>
                     </div>
 
-                    {/* Preview Gallery */}
-                    {specialImages.length > 0 && (
+                    {/* Preview Gallery — existing cloud URLs */}
+                    {(existingImageUrls.length > 0 || newImageFiles.length > 0) && (
                       <div className="flex flex-wrap gap-2.5 mt-1 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
-                        {specialImages.map((img, idx) => (
-                          <div key={idx} className="relative group w-16 h-16 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                        {existingImageUrls.map((img, idx) => (
+                          <div key={`existing-${idx}`} className="relative group w-16 h-16 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm cursor-zoom-in active:scale-95 transition-transform" onClick={() => onPreviewImage(img)}>
                             <img src={img} className="w-full h-full object-cover" alt="preview" />
                             <button 
-                              onClick={() => setSpecialImages(prev => prev.filter((_, i) => i !== idx))}
-                              className="absolute top-1 right-1 p-0.5 bg-red-600 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExistingImageUrls(prev => prev.filter((_, i) => i !== idx));
+                              }}
+                              className="absolute top-1 right-1 p-1 md:p-0.5 bg-red-600 text-white rounded-md md:opacity-0 md:group-hover:opacity-100 transition-opacity shadow-lg"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                        {/* New (pending upload) files shown as local previews */}
+                        {newImagePreviews.map((preview, idx) => (
+                          <div key={`new-${idx}`} className="relative group w-16 h-16 rounded-lg overflow-hidden border-2 border-purple-300 dark:border-purple-600 shadow-sm cursor-zoom-in active:scale-95 transition-transform" onClick={() => onPreviewImage(preview)}>
+                            <img src={preview} className="w-full h-full object-cover" alt="new preview" />
+                            <div className="absolute bottom-0 left-0 right-0 h-3 bg-purple-500/60 flex items-center justify-center">
+                              <span className="text-[8px] text-white font-bold">待传</span>
+                            </div>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setNewImageFiles(prev => prev.filter((_, i) => i !== idx));
+                              }}
+                              className="absolute top-1 right-1 p-1 md:p-0.5 bg-red-600 text-white rounded-md md:opacity-0 md:group-hover:opacity-100 transition-opacity shadow-lg"
                             >
                               <X size={12} />
                             </button>
@@ -528,10 +560,11 @@ export function RecordModal({
 
                 <button 
                   onClick={handleSaveSpecial}
-                  disabled={!specialTitle.trim()}
-                  className="w-full py-4 bg-purple-600 disabled:bg-gray-400 text-white rounded-xl font-bold shadow-lg shadow-purple-500/20 transition-all active:scale-[0.98] text-sm"
+                  disabled={!specialTitle.trim() || isUploading}
+                  className="w-full py-4 bg-purple-600 disabled:bg-gray-400 text-white rounded-xl font-bold shadow-lg shadow-purple-500/20 transition-all active:scale-[0.98] text-sm flex items-center justify-center gap-2"
                 >
-                  {editingRecord && editingRecord.record.type === 'special' ? '保存修改' : '保存特殊事件'}
+                  {isUploading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  {isUploading ? '上传图片中...' : (editingRecord && editingRecord.record.type === 'special' ? '保存修改' : '保存特殊事件')}
                 </button>
 
                 {editingRecord && editingRecord.record.type === 'special' && (
