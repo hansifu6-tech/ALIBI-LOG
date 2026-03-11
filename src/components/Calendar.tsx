@@ -295,22 +295,22 @@ export function Calendar({
                     key={cIdx}
                     onClick={() => onOpenModal(cell.date)}
                     className={`group relative rounded-xl border flex flex-col transition-all duration-200 ease-out cursor-pointer
-                      min-h-[96px] md:min-h-0 md:h-full md:max-h-[14vh] md:aspect-square
+                      min-h-[96px] md:min-h-0 md:aspect-square
                       ${cell.isToday 
                         ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-sm' 
                         : 'bg-white dark:bg-gray-900 border-gray-200/60 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50'}
                       hover:scale-105 hover:z-20 hover:shadow-lg active:scale-95 hover:ring-2 ring-blue-400 ring-offset-2 dark:ring-offset-gray-950`}
                   >
-                    {/* Date number — 11px mobile / xs desktop */}
-                    <div className="flex justify-between items-start w-full p-1 md:p-3 pb-0.5 md:pb-1 shrink-0">
-                      <span className={`text-[11px] md:text-xs font-bold leading-none
+                    {/* Date number — Normal flow layout for both mobile and desktop */}
+                    <div className="flex justify-between items-start w-full px-1 pt-1 mb-1 shrink-0 z-10">
+                      <span className={`text-[11px] md:text-sm font-bold md:font-medium leading-none md:bg-white/60 md:dark:bg-black/40 md:rounded-full md:px-1.5 md:py-0.5
                         ${cell.isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100'}`}>
                         {cell.label}
                       </span>
                     </div>
 
-                    {/* Habits — 20×20 mobile / 24×24 desktop, at least 2 per row on mobile */}
-                    <div className="habit-container flex flex-wrap gap-0.5 md:gap-1 p-0.5 md:p-1 min-h-[28px] md:min-h-[32px]">
+                    {/* Habits Area — Compact flow layout */}
+                    <div className="habit-container flex flex-wrap gap-0.5 content-start p-0.5 md:p-1 w-full shrink-0">
                       {(dailyRecords || []).map(record => {
                         const isCompleted = (record.completedDates || []).includes(dateStr);
                         const firstChar = record.content?.charAt(0) || '?';
@@ -327,7 +327,7 @@ export function Calendar({
                                   : [...(record.completedDates || []), dateStr]
                               });
                             }}
-                            className={`w-5 h-5 sm:w-6 md:w-2.5 md:h-2.5 rounded-sm md:rounded transition-all duration-200 shrink-0 flex items-center justify-center text-[11px] sm:text-[13px] md:text-[8px] font-bold select-none active:scale-90 sm:hover:scale-110
+                            className={`w-5 h-5 md:w-7 md:h-7 rounded-sm md:rounded-md transition-all duration-200 shrink-0 flex items-center justify-center text-[11px] md:text-sm font-bold select-none active:scale-90 hover:scale-110
                               ${isCompleted 
                                 ? 'shadow-sm border-2 border-solid border-black/10 dark:border-white/10' 
                                 : 'bg-gray-100 dark:bg-gray-800 border-[1.5px] border-dashed border-gray-300 dark:border-gray-700 text-gray-400'}
@@ -340,11 +340,13 @@ export function Calendar({
                       })}
                     </div>
 
-                    {/* Divider */}
-                    <div className="border-t border-gray-100 dark:border-gray-800 mx-1" />
+                    {/* Universal Separator — Visible whenever both sections exist */}
+                    {dailyRecords.length > 0 && dayEvents.length > 0 && (
+                      <div className="w-full border-t border-gray-100 dark:border-gray-800/80 my-1 mx-0" />
+                    )}
 
-                    {/* Events Area: Full text labels */}
-                    <div className="event-container flex flex-col gap-0.5 md:gap-1 p-1 flex-1 overflow-hidden">
+                    {/* Events Area */}
+                    <div className="event-container flex flex-col gap-0.5 p-0.5 md:p-1">
                       {(dayEvents || []).map(record => {
                         const displayTitle = record.title || getRecordTagsString(record);
                         return (
@@ -354,7 +356,7 @@ export function Calendar({
                               e.stopPropagation();
                               onOpenModal(cell.date, { record, dateStr });
                             }}
-                            className="text-[9px] sm:text-[10px] px-1.5 py-1 rounded shadow-sm text-left truncate font-medium w-full hover:brightness-95 transition-all"
+                            className="text-[9px] md:text-xs px-1.5 py-0.5 md:py-1 rounded shadow-sm text-left truncate font-medium w-full hover:brightness-95 transition-all"
                             style={{ backgroundColor: record.color?.bg, color: record.color?.text }}
                           >
                             {displayTitle}
@@ -556,6 +558,44 @@ export function Calendar({
               </div>
             ))}
           </div>
+
+          {/* Habit Legend - Added for V23 Clarity */}
+          {posterData.selectedHabits.length > 0 && (
+            <div style={{ marginTop: '80px', width: '100%', borderTop: '1px solid #f1f5f9', paddingTop: '40px' }}>
+              <div style={{ 
+                fontSize: '10px', 
+                fontWeight: '900', 
+                color: '#94a3b8', 
+                letterSpacing: '0.3em', 
+                marginBottom: '24px',
+                textAlign: 'center'
+              }}>HABIT LEGEND</div>
+              
+              <div style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                justifyContent: 'center', 
+                gap: '24px 40px',
+                maxWidth: '900px',
+                margin: '0 auto'
+              }}>
+                {posterData.selectedHabits.map((h: any) => (
+                  <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ 
+                      width: '10px', 
+                      height: '10px', 
+                      borderRadius: '50%', 
+                      backgroundColor: h.safeColor.bg,
+                      boxShadow: `0 1px 3px ${h.safeColor.bg}40`
+                    }} />
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#475569', letterSpacing: '0.02em' }}>
+                      {h.content}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Footer Branding */}
           <div style={{ marginTop: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
