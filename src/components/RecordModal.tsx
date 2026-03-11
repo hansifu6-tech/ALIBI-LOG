@@ -90,6 +90,11 @@ export function RecordModal({
   // Local preview URLs for new files (revoked on unmount)
   const newImagePreviews = newImageFiles.map(f => URL.createObjectURL(f));
 
+  // Inline Editing State for Existing Habits
+  const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
+  const [editHabitName, setEditHabitName] = useState('');
+  const [editHabitDays, setEditHabitDays] = useState<number[]>([]);
+
   // Defensive arrays
   const safeTags = tags || [];
   const safeRecords = records || [];
@@ -334,46 +339,114 @@ export function RecordModal({
                 <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-v" style={{ maxHeight: '200px' }}>
                   {safeRecords.filter(r => r.type === 'daily').map(record => {
                     const habit = record as DailyRecord;
+                    const isEditing = editingHabitId === habit.id;
+                    
+                    if (isEditing) {
+                      return (
+                        <div key={habit.id} className="flex flex-col gap-4 p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border-2 border-blue-400/50 shadow-md">
+                          <input 
+                            type="text"
+                            value={editHabitName}
+                            onChange={(e) => setEditHabitName(e.target.value)}
+                            className="bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="习惯名称..."
+                            autoFocus
+                          />
+                          <div className="flex items-center justify-between">
+                            <div className="flex gap-1.5">
+                              {WEEKDAYS.map((day) => {
+                                const active = editHabitDays.includes(day.value);
+                                return (
+                                  <button
+                                    key={day.value}
+                                    onClick={() => setEditHabitDays(prev => 
+                                      active ? prev.filter(d => d !== day.value) : [...prev, day.value].sort()
+                                    )}
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
+                                      active ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-400 border border-gray-100 dark:border-gray-700'
+                                    }`}
+                                  >
+                                    {day.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => setEditingHabitId(null)}
+                                className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-gray-700 bg-gray-100 dark:bg-gray-800 rounded-lg"
+                              >
+                                取消
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  if (editHabitName.trim()) {
+                                    handleUpdateHabitInline(habit, { 
+                                      content: editHabitName.trim(), 
+                                      repeatDays: editHabitDays.length > 0 ? editHabitDays : [0,1,2,3,4,5,6]
+                                    });
+                                    setEditingHabitId(null);
+                                  }
+                                }}
+                                className="px-3 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-lg shadow-lg shadow-blue-500/20"
+                              >
+                                保存
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div key={habit.id} className="flex flex-col gap-3 p-4 bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm group hover:border-blue-200 transition-colors">
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <div className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: habit.color?.bg }} />
-                            <input 
-                              type="text"
-                              defaultValue={habit.content}
-                              onBlur={(e) => {
-                                if (e.target.value.trim() && e.target.value !== habit.content) {
-                                  handleUpdateHabitInline(habit, { content: e.target.value.trim() });
-                                }
+                            <span 
+                              className="text-sm font-semibold text-gray-800 dark:text-gray-100 w-full overflow-hidden truncate cursor-pointer hover:text-blue-600"
+                              onClick={() => {
+                                setEditingHabitId(habit.id);
+                                setEditHabitName(habit.content);
+                                setEditHabitDays(habit.repeatDays || []);
                               }}
-                              className="bg-transparent border-none outline-none text-sm font-semibold text-gray-800 dark:text-gray-100 w-full focus:text-blue-600 transition-colors overflow-hidden truncate"
-                            />
+                            >
+                              {habit.content}
+                            </span>
                           </div>
-                          <button 
-                            onClick={() => onDeleteRecord(habit.id, 'daily', habit.content)} 
-                            className="p-3 md:p-2 text-gray-400 md:text-gray-300 md:opacity-0 md:group-hover:opacity-100 hover:text-red-500 rounded-xl transition-all hover:bg-red-50 dark:hover:bg-red-900/20"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button 
+                              onClick={() => {
+                                setEditingHabitId(habit.id);
+                                setEditHabitName(habit.content);
+                                setEditHabitDays(habit.repeatDays || []);
+                              }}
+                              className="p-2 text-gray-300 opacity-0 group-hover:opacity-100 hover:text-blue-500 rounded-lg transition-all"
+                              title="编辑"
+                            >
+                              <RotateCcw size={16} className="rotate-180" />
+                            </button>
+                            <button 
+                              onClick={() => onDeleteRecord(habit.id, 'daily', habit.content)} 
+                              className="p-2 text-gray-300 opacity-0 group-hover:opacity-100 hover:text-red-500 rounded-lg transition-all"
+                              title="删除"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-start gap-2 pl-6">
+                        <div className="flex items-center justify-start gap-1 pl-6">
                           {WEEKDAYS.map((day) => {
                             const isSelected = habit.repeatDays?.includes(day.value);
                             return (
-                              <button
+                              <div
                                 key={day.value}
-                                onClick={() => {
-                                  const cDays = habit.repeatDays || [0, 1, 2, 3, 4, 5, 6];
-                                  const nDays = isSelected ? cDays.filter(d => d !== day.value) : [...cDays, day.value].sort();
-                                  if (nDays.length > 0) handleUpdateHabitInline(habit, { repeatDays: nDays });
-                                }}
-                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
-                                  isSelected ? 'bg-blue-500 text-white shadow-sm' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:bg-gray-200'
+                                className={`w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-bold transition-all ${
+                                  isSelected ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-gray-50 dark:bg-gray-800 text-gray-300'
                                 }`}
                               >
                                 {day.label}
-                              </button>
+                              </div>
                             );
                           })}
                         </div>

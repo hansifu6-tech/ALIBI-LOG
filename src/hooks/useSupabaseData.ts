@@ -56,32 +56,46 @@ function decodeColor(raw: any): { bg: string; text: string } {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function aggregateDailyRows(rows: any[]): DailyRecord[] {
   // Group by content (habit name)
-  const map = new Map<string, { id: string; color: { bg: string; text: string }; createdAt: number; dates: string[] }>();
+  const map = new Map<string, { id: string; color: { bg: string; text: string }; createdAt: number; dates: string[]; repeatDays: number[] }>();
 
   for (const row of rows) {
     const content = row.content ?? '';
     const color = decodeColor(row.color);
     const createdAt = row.created_at ? new Date(row.created_at).getTime() : Date.now();
     const moodIsDate = typeof row.mood === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(row.mood);
+    
+    // repeatDays stored in 'tags' column of the definition row (mood is null)
+    let rowRepeatDays: number[] | null = null;
+    if (!moodIsDate && row.tags) {
+      try {
+        rowRepeatDays = Array.isArray(row.tags) ? row.tags.map(Number) : JSON.parse(row.tags).map(Number);
+      } catch { /* fallback */ }
+    }
 
     if (!map.has(content)) {
-      map.set(content, { id: String(row.id), color, createdAt, dates: [] });
+      map.set(content, { id: String(row.id), color, createdAt, dates: [], repeatDays: [0, 1, 2, 3, 4, 5, 6] });
     }
+    
     const entry = map.get(content)!;
-    // Prefer the definition row (mood null) id as the canonical id
-    if (!moodIsDate) entry.id = String(row.id);
+    
+    // If it's the definition row, capture the canonical ID and custom repeatDays
+    if (!moodIsDate) {
+      entry.id = String(row.id);
+      if (rowRepeatDays) entry.repeatDays = rowRepeatDays;
+    }
+    
     // Collect check-in dates
     if (moodIsDate) entry.dates.push(row.mood);
   }
 
-  return Array.from(map.entries()).map(([content, { id, color, createdAt, dates }]) => ({
+  return Array.from(map.entries()).map(([content, { id, color, createdAt, dates, repeatDays }]) => ({
     id,
     createdAt,
     type: 'daily',
     content,
     color,
     completedDates: dates,
-    repeatDays: [0, 1, 2, 3, 4, 5, 6],
+    repeatDays,
   }));
 }
 
@@ -363,18 +377,56 @@ export const useSupabaseData = (userId: string | null | undefined) => {
       return;
     }
 
-    // Daily: the Calendar calls updateRecord when toggling a date.
-    // Compare current DB state to the new completedDates.
+    // Daily: the Calendar calls updateRecord when toggling a date or editing habit details.
     const newDates = record.completedDates ?? [];
+    const newRepeatDays = record.repeatDays ?? [0, 1, 2, 3, 4, 5, 6];
 
-    // ── Optimistic update for daily check-in toggle ──
+    // ── Optimistic update ──
     setRecords(prev => prev.map(r =>
-      r.type === 'daily' && r.content === record.content
-        ? { ...r, completedDates: newDates } as CalendarRecord
+      r.type === 'daily' && (r.id === record.id || r.content === record.content)
+        ? { ...record } as CalendarRecord
         : r
     ));
 
-    // Fetch existing check-in rows for this habit content
+    // Check if we need to update the "Habit Definition" (Name/RepeatDays/Color)
+    const { data: existingDef } = await supabase
+      .from('records')
+      .select('content, id')
+      .eq('id', record.id)
+      .eq('type', 'daily')
+      .is('mood', null)
+      .single();
+
+    if (existingDef) {
+       console.log('[Supabase] Syncing habit definition:', record.id);
+       const oldContent = existingDef.content;
+       const newContent = record.content;
+
+       // Update definition row
+       const { error: defErr } = await supabase
+         .from('records')
+         .update({ 
+           content: newContent, 
+           color: encodeColor(record.color),
+           tags: newRepeatDays 
+         })
+         .eq('id', record.id);
+       
+       if (defErr) console.warn('[Supabase] definition update warn:', defErr);
+
+       // Cascade name change if necessary
+       if (oldContent !== newContent) {
+         await supabase
+           .from('records')
+           .update({ content: newContent })
+           .eq('user_id', userId)
+           .eq('type', 'daily')
+           .eq('content', oldContent);
+       }
+    }
+
+    // ─── DAILY CHECK-IN SYNC ───
+    // Compare current DB state to the new completedDates.
     const { data: existingRows, error: fetchErr } = await supabase
       .from('records')
       .select('id, mood')
@@ -383,49 +435,30 @@ export const useSupabaseData = (userId: string | null | undefined) => {
       .eq('content', record.content)
       .not('mood', 'is', null);
 
-    if (fetchErr) { reportError('updateRecord:fetch', fetchErr); await fetchRecords(); return; }
+    if (!fetchErr) {
+      const existingDates = (existingRows ?? []).map((r: { mood: string }) => r.mood);
+      const existingById = new Map((existingRows ?? []).map((r: { id: string; mood: string }) => [r.mood, r.id]));
 
-    const existingDates = (existingRows ?? []).map((r: { mood: string }) => r.mood);
-    const existingById = new Map((existingRows ?? []).map((r: { id: string; mood: string }) => [r.mood, r.id]));
+      const toAdd = newDates.filter(d => !existingDates.includes(d));
+      const toRemove = existingDates.filter((d: string) => !newDates.includes(d));
 
-    // Dates to add (in newDates but not in existingDates)
-    const toAdd = newDates.filter(d => !existingDates.includes(d));
-    // Dates to remove (in existingDates but not in newDates)
-    const toRemove = existingDates.filter((d: string) => !newDates.includes(d));
+      if (toAdd.length > 0) {
+        const insertRows = toAdd.map(date => ({
+          user_id: userId,
+          type: 'daily',
+          content: record.content,
+          color: encodeColor(record.color),
+          image_url: null,
+          mood: date,
+        }));
+        await supabase.from('records').insert(insertRows);
+      }
 
-    // Insert new check-in rows
-    if (toAdd.length > 0) {
-      const insertRows = toAdd.map(date => ({
-        user_id: userId,
-        type: 'daily',
-        content: record.content,
-        color: encodeColor(record.color),
-        image_url: null,
-        mood: date,
-      }));
-      console.log('[Supabase] insert check-ins:', insertRows);
-      const { error } = await supabase.from('records').insert(insertRows);
-      if (error) { reportError('updateRecord:checkIn', error); return; }
+      for (const date of toRemove) {
+        const rowId = existingById.get(date);
+        if (rowId) await supabase.from('records').delete().eq('id', rowId);
+      }
     }
-
-    // Delete removed check-in rows
-    for (const date of toRemove) {
-      const rowId = existingById.get(date);
-      if (!rowId) continue;
-      console.log('[Supabase] delete check-in:', date, rowId);
-      const { error } = await supabase.from('records').delete().eq('id', rowId);
-      if (error) { reportError('updateRecord:uncheck', error); return; }
-    }
-
-    // Update color on habit definition row if it changed
-    const { error: colorErr } = await supabase
-      .from('records')
-      .update({ color: encodeColor(record.color) })
-      .eq('user_id', userId)
-      .eq('type', 'daily')
-      .eq('content', record.content)
-      .is('mood', null);
-    if (colorErr) console.warn('[Supabase] color update warn:', colorErr);
 
     await fetchRecords();
   };

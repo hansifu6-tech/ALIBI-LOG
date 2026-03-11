@@ -270,10 +270,12 @@ export function Calendar({
                 
                 const allRecords = records || [];
                 
-                // Habit filtering logic
+                // Habit filtering logic: Show if it's a repeat day OR if it's already completed
                 const dailyRecords = allRecords.filter(r => {
                   if (!r || r.type !== 'daily') return false;
-                  return !r.repeatDays || r.repeatDays.includes(dayOfWeek);
+                  const isRepeatDay = !r.repeatDays || r.repeatDays.includes(dayOfWeek);
+                  const isCompleted = (r.completedDates || []).includes(dateStr);
+                  return isRepeatDay || isCompleted;
                 }).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)) as DailyRecord[];
 
                 // FIXED: Enhanced Special Event Filtering Logic
