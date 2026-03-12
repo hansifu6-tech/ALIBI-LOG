@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../supabase';
 import type { CalendarRecord, DailyRecord, RecordTag } from '../types';
 
@@ -185,6 +185,9 @@ export const useSupabaseData = (userId: string | null | undefined) => {
   // allAvailableTags: union of Supabase cloud tags + local defaults
   const [allAvailableTags, setAllAvailableTags] = useState<RecordTag[]>(DEFAULT_TAGS);
   const [loading, setLoading] = useState(false);
+  
+  // Track debounced sync timers per habit content
+  const pendingSyncs = useRef<Map<string, any>>(new Map());
 
   const fetchRecords = useCallback(async () => {
     if (!userId) { setRecords([]); return; }
@@ -368,8 +371,6 @@ export const useSupabaseData = (userId: string | null | undefined) => {
       setRecords(prev => prev.map(r =>
         r.id === tempId ? { ...r, id: String(inserted.id) } : r
       ));
-    } else {
-      await fetchRecords();
     }
   };
 
@@ -398,7 +399,7 @@ export const useSupabaseData = (userId: string | null | undefined) => {
       const { error } = await supabase.from('records').upsert([row]);
       if (error) {
         reportError('updateRecord', error);
-        await fetchRecords(); // rollback by refetching
+        // We don't fetchRecords here to avoid full reload; user will see the error and can retry
       }
       return;
     }
@@ -455,71 +456,94 @@ export const useSupabaseData = (userId: string | null | undefined) => {
        }
     }
 
-    // ─── DAILY CHECK-IN SYNC ───
-    // Compare current DB state to the new completedDates.
-    const { data: existingRows, error: fetchErr } = await supabase
-      .from('records')
-      .select('id, mood')
-      .eq('user_id', userId)
-      .eq('type', 'daily')
-      .eq('content', record.content)
-      .not('mood', 'is', null);
+    // ─── DAILY CHECK-IN SYNC (DEBOUNCED) ───
+    // We debounce the sync to handle rapid toggling (e.g. clicking 3 squares in 1 sec)
+    const habitId = record.content;
+    const syncMap = pendingSyncs.current;
 
-    if (!fetchErr) {
-      const existingDates = (existingRows ?? []).map((r: { mood: string }) => r.mood);
-      const existingById = new Map((existingRows ?? []).map((r: { id: string; mood: string }) => [r.mood, r.id]));
-
-      const toAdd = newDates.filter(d => !existingDates.includes(d));
-      const toRemove = existingDates.filter((d: string) => !newDates.includes(d));
-
-      if (toAdd.length > 0) {
-        const insertRows = toAdd.map(date => ({
-          user_id: userId,
-          type: 'daily',
-          content: record.content,
-          color: encodeColor(record.color),
-          tags: record.repeatDays || [0, 1, 2, 3, 4, 5, 6],
-          start_date: record.startDate || null,
-          end_date: record.endDate || null,
-          mood: date,
-        }));
-        await supabase.from('records').insert(insertRows);
-      }
-
-      for (const date of toRemove) {
-        const rowId = existingById.get(date);
-        if (rowId) await supabase.from('records').delete().eq('id', rowId);
-      }
+    if (syncMap.has(habitId)) {
+      clearTimeout(syncMap.get(habitId));
     }
 
-    await fetchRecords();
+    const timer = setTimeout(async () => {
+      syncMap.delete(habitId);
+      console.log(`[Supabase] Background sync for habit: ${habitId}`);
+      
+      const { data: existingRows, error: fetchErr } = await supabase
+        .from('records')
+        .select('id, mood')
+        .eq('user_id', userId)
+        .eq('type', 'daily')
+        .eq('content', record.content)
+        .not('mood', 'is', null);
+
+      if (!fetchErr) {
+        const existingDates = (existingRows ?? []).map((r: { mood: string }) => r.mood);
+        const existingById = new Map((existingRows ?? []).map((r: { id: string; mood: string }) => [r.mood, r.id]));
+
+        const toAdd = newDates.filter(d => !existingDates.includes(d));
+        const toRemove = existingDates.filter((d: string) => !newDates.includes(d));
+
+        if (toAdd.length > 0) {
+          const insertRows = toAdd.map(date => ({
+            user_id: userId,
+            type: 'daily',
+            content: record.content,
+            color: encodeColor(record.color),
+            tags: record.repeatDays || [0, 1, 2, 3, 4, 5, 6],
+            start_date: record.startDate || null,
+            end_date: record.endDate || null,
+            mood: date,
+          }));
+          await supabase.from('records').insert(insertRows);
+        }
+
+        for (const date of toRemove) {
+          const rowId = existingById.get(date);
+          if (rowId) await supabase.from('records').delete().eq('id', rowId);
+        }
+      }
+    }, 1200); // 1.2s debounce
+
+    syncMap.set(habitId, timer);
   };
 
   // ─── deleteRecord ─────────────────────────────
   // Deletes the habit definition row AND all its check-in rows
-  const deleteRecord = async (id: string, type: 'daily' | 'special') => {
+  const deleteRecord = async (id: string, type: 'daily' | 'special', content?: string) => {
     if (!userId) return;
+
+    // ── Optimistic local update ──
+    setRecords(prev => prev.filter(r => {
+      if (type === 'special') return r.id !== id;
+      // For daily, we remove all records with this ID (definition) OR matching content (check-ins)
+      const isMatch = r.id === id || (r.type === 'daily' && r.content === content);
+      return !isMatch;
+    }));
 
     if (type === 'special') {
       const { error } = await supabase.from('records').delete().eq('id', id).eq('user_id', userId);
       if (error) { reportError('deleteRecord', error); return; }
     } else {
-      // Find the habit's content name to delete all related check-in rows too
-      const { data: defRow } = await supabase
-        .from('records').select('content').eq('id', id).single();
-      if (defRow?.content) {
+      // If content is provided, we can delete all rows for this habit in one go
+      // This avoids a redundant .select().single() which can cause 406 errors
+      const targetContent = content;
+
+      if (targetContent) {
+        console.log('[Supabase] bulk delete habit:', targetContent);
         const { error } = await supabase
           .from('records')
           .delete()
           .eq('user_id', userId)
           .eq('type', 'daily')
-          .eq('content', defRow.content);
+          .eq('content', targetContent);
         if (error) { reportError('deleteRecord:daily', error); return; }
       } else {
-        await supabase.from('records').delete().eq('id', id);
+        // Fallback if content missing, delete by ID only
+        await supabase.from('records').delete().eq('id', id).eq('user_id', userId);
       }
     }
-    await fetchRecords();
+    // No fetchRecords() here - stay optimistic
   };
 
   // ─── Tag CRUD (Supabase + localStorage cache) ──

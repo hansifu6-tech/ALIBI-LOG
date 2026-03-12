@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, useCallback, useMemo } from 'react';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCalendarData } from '../hooks/useCalendarData';
 import { ShareModal } from './ShareModal';
@@ -18,6 +18,224 @@ interface CalendarProps {
   showRainbowBorder: boolean;
 }
 
+// --- Sub-components (Memoized) ---
+
+interface HabitSquareProps {
+  record: DailyRecord;
+  dateStr: string;
+  onUpdate: (record: CalendarRecord) => void;
+}
+
+const HabitSquare = memo(({ record, dateStr, onUpdate }: HabitSquareProps) => {
+  const isCompleted = (record.completedDates || []).includes(dateStr);
+  const firstChar = record.content?.charAt(0) || '?';
+
+  return (
+    <div
+      title={record.content}
+      onClick={(e) => {
+        e.stopPropagation();
+        onUpdate({
+          ...record,
+          completedDates: isCompleted
+            ? (record.completedDates || []).filter(d => d !== dateStr)
+            : [...(record.completedDates || []), dateStr]
+        });
+      }}
+      className={`w-5 h-5 md:w-7 md:h-7 rounded-sm md:rounded-md transition-all duration-200 shrink-0 flex items-center justify-center text-[11px] md:text-sm font-bold select-none active:scale-90 hover:scale-110
+        ${isCompleted
+          ? 'shadow-sm border-2 border-solid border-black/10 dark:border-white/10'
+          : 'bg-gray-100 dark:bg-gray-800 border-[1.5px] border-dashed border-gray-300 dark:border-gray-700 text-gray-400'}
+      `}
+      style={isCompleted ? { backgroundColor: record.color?.bg, color: record.color?.text } : {}}
+    >
+      {firstChar}
+    </div>
+  );
+});
+
+const MobileHabitSquare = memo(({ record, dateStr, onUpdate }: HabitSquareProps) => {
+  const isCompleted = (record.completedDates || []).includes(dateStr);
+  const firstChar = record.content?.charAt(0) || '?';
+
+  return (
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        onUpdate({
+          ...record,
+          completedDates: isCompleted
+            ? (record.completedDates || []).filter(d => d !== dateStr)
+            : [...(record.completedDates || []), dateStr]
+        });
+      }}
+      className={`w-[38px] h-[38px] rounded-lg flex items-center justify-center text-xs font-bold transition-all
+        ${isCompleted
+          ? 'shadow-sm border border-black/5 dark:border-white/5'
+          : 'bg-gray-100 dark:bg-gray-800/80 text-gray-400 border border-dashed border-gray-200'}`}
+      style={isCompleted ? { backgroundColor: record.color?.bg, color: record.color?.text } : {}}
+    >
+      {firstChar}
+    </div>
+  );
+});
+
+interface DayCellProps {
+  date: Date;
+  dateStr: string;
+  isToday: boolean;
+  dailyRecords: DailyRecord[];
+  dayEvents: SpecialRecord[];
+  showRainbowBorder: boolean;
+  onOpenModal: (date: Date | null, recordToEdit?: { record: CalendarRecord, dateStr: string }) => void;
+  onUpdateRecord: (record: CalendarRecord) => void;
+  getRecordTagsString: (record: SpecialRecord) => string;
+}
+
+const DesktopDayCell = memo(({ 
+  date, 
+  dateStr, 
+  isToday, 
+  dailyRecords, 
+  dayEvents, 
+  showRainbowBorder, 
+  onOpenModal, 
+  onUpdateRecord,
+  getRecordTagsString
+}: DayCellProps) => {
+  const totalHabits = dailyRecords.length;
+  const completedHabits = dailyRecords.filter(r => (r.completedDates || []).includes(dateStr)).length;
+  const progress = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
+  const isCompletedAll = totalHabits > 0 && progress === 100;
+
+  return (
+    <div
+      onClick={() => onOpenModal(date)}
+      style={{ '--rainbow-progress': `${progress}%` } as React.CSSProperties}
+      className={`group relative rounded-xl flex flex-col transition-all duration-200 ease-out cursor-pointer overflow-hidden
+        min-h-[96px] md:min-h-0 md:aspect-square
+        ${progress > 0 && showRainbowBorder
+          ? 'rainbow-card border-transparent p-1' 
+          : 'border border-gray-200/60 dark:border-gray-800'}
+        ${isCompletedAll && showRainbowBorder ? 'rainbow-card-complete' : ''}
+        ${isToday && progress === 0
+          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-sm' 
+          : (progress === 0 ? 'bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50' : 'bg-white dark:bg-gray-900')}
+        hover:scale-105 hover:z-20 hover:shadow-lg active:scale-95 hover:ring-2 ring-blue-400 ring-offset-2 dark:ring-offset-gray-950`}
+    >
+      <div className="flex justify-between items-start w-full px-1 pt-1 mb-1 shrink-0 z-10">
+        <span className={`text-[11px] md:text-sm font-bold md:font-medium leading-none md:bg-white/60 md:dark:bg-black/40 md:rounded-full md:px-1.5 md:py-0.5
+          ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100'}`}>
+          {date.getDate()}
+        </span>
+      </div>
+
+      <div className="habit-container flex flex-wrap gap-0.5 content-start p-0.5 md:p-1 w-full shrink-0">
+        {dailyRecords.map(record => (
+          <HabitSquare
+            key={`habit-${record.id}`}
+            record={record}
+            dateStr={dateStr}
+            onUpdate={onUpdateRecord}
+          />
+        ))}
+      </div>
+
+      {dailyRecords.length > 0 && dayEvents.length > 0 && (
+        <div className="w-full border-t border-gray-100 dark:border-gray-800/80 my-1 mx-0" />
+      )}
+
+      <div className="event-container flex flex-col gap-0.5 p-0.5 md:p-1">
+        {dayEvents.map(record => (
+          <div
+            key={`special-${record.id}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenModal(date, { record, dateStr });
+            }}
+            className="text-[9px] md:text-xs px-1.5 py-0.5 md:py-1 rounded shadow-sm text-left truncate font-medium w-full hover:brightness-95 transition-all"
+            style={{ backgroundColor: record.color?.bg, color: record.color?.text }}
+          >
+            {record.title || getRecordTagsString(record)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+const MobileDayCell = memo(({ 
+  date, 
+  dateStr, 
+  isToday, 
+  dailyRecords, 
+  dayEvents, 
+  showRainbowBorder, 
+  onOpenModal, 
+  onUpdateRecord,
+  getRecordTagsString
+}: DayCellProps) => {
+  const totalHabits = dailyRecords.length;
+  const completedHabits = dailyRecords.filter(r => (r.completedDates || []).includes(dateStr)).length;
+  const progress = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
+  const isCompletedAll = totalHabits > 0 && progress === 100;
+  const shortWeekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+
+  return (
+    <div 
+      onClick={() => onOpenModal(date)}
+      style={{ '--rainbow-progress': `${progress}%` } as React.CSSProperties}
+      className={`flex w-full h-28 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-gray-900 active:scale-[0.98] transition-all duration-200 
+        ${progress > 0 && showRainbowBorder ? 'rainbow-card border-transparent p-1' : 'border border-gray-100 dark:border-gray-800'} 
+        ${isCompletedAll && showRainbowBorder ? 'rainbow-card-complete' : ''}
+      `}
+    >
+      <div className="w-16 shrink-0 flex flex-col items-center justify-center border-r bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800">
+        <span className={`text-2xl font-black leading-none tracking-tight ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-gray-200'}`}>{date.getDate()}</span>
+        <span className={`text-[10px] font-bold mt-1 uppercase tracking-widest ${isToday ? 'text-blue-500' : 'text-slate-400'}`}>{shortWeekday}</span>
+      </div>
+
+      <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900">
+        <div className={`px-2.5 py-1.5 flex-1 flex flex-wrap gap-1.5 items-center content-center bg-white dark:bg-gray-900
+          ${(dailyRecords.length > 0 && dayEvents.length > 0) ? 'border-b border-gray-50 dark:border-gray-800/80' : ''}`}>
+          {dailyRecords.map(record => (
+            <MobileHabitSquare
+              key={`mobile-habit-${record.id}`}
+              record={record}
+              dateStr={dateStr}
+              onUpdate={onUpdateRecord}
+            />
+          ))}
+          {dailyRecords.length === 0 && (
+            <span className="text-[11px] text-gray-400/60 font-medium italic mt-1 ml-1">No habits scheduled</span>
+          )}
+        </div>
+
+        {dayEvents.length > 0 && (
+          <div className="px-2.5 py-1.5 flex flex-col gap-1 justify-center bg-white dark:bg-gray-900 overflow-hidden">
+            {dayEvents.slice(0, 1).map(record => (
+              <div
+                key={`mobile-special-${record.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenModal(date, { record, dateStr });
+                }}
+                className="h-[38px] flex items-center px-3 rounded-lg shadow-sm truncate font-bold text-left tracking-tight text-[10px]"
+                style={{ backgroundColor: record.color?.bg, color: record.color?.text }}
+              >
+                {record.title || getRecordTagsString(record)}
+              </div>
+            ))}
+            {dayEvents.length > 1 && (
+              <span className="text-[9px] text-gray-400 pl-1 font-bold italic">+{dayEvents.length - 1} more event</span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
 export function Calendar({ 
   onOpenModal, 
   records, 
@@ -33,7 +251,6 @@ export function Calendar({
 
   const [isPosterLoading, setIsPosterLoading] = useState(false);
   const [posterData, setPosterData] = useState<any>(null);
-
 
   const handleStartShareGeneration = (settings: { startDate: string, endDate: string, selectedHabitIds: string[], selectedTagIds: string[] }) => {
     setIsPosterLoading(true);
@@ -213,16 +430,44 @@ export function Calendar({
       </div>
     );
   }
+  const processedDays = useMemo(() => {
+    const map = new Map<string, { daily: DailyRecord[], special: SpecialRecord[] }>();
+    const allRecords = records || [];
+    
+    (weeks || []).flat().forEach(cell => {
+      if (!cell || !cell.date) return;
+      const dateStr = `${cell.date.getFullYear()}-${String(cell.date.getMonth() + 1).padStart(2, '0')}-${String(cell.date.getDate()).padStart(2, '0')}`;
+      const dayOfWeek = cell.date.getDay();
 
+      const daily = allRecords.filter(r => {
+        if (!r || r.type !== 'daily') return false;
+        const isWithinRange = (!r.startDate || dateStr >= r.startDate) && (!r.endDate || dateStr <= r.endDate);
+        if (!isWithinRange) return false;
+        return (!r.repeatDays || r.repeatDays.includes(dayOfWeek)) || (r.completedDates || []).includes(dateStr);
+      }).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)) as DailyRecord[];
 
-  const getRecordTagsString = (record: SpecialRecord) => {
+      const special = (allRecords.filter(r => r && r.type === 'special' && r.dateStr === dateStr) as SpecialRecord[])
+        .filter(event => {
+          if (hideAllSpecialEvents) return false;
+          if (filterTagIds && filterTagIds.length > 0) {
+            return (event.tagIds || []).some(tagId => filterTagIds.includes(tagId));
+          }
+          return true;
+        });
+
+      map.set(dateStr, { daily, special });
+    });
+    return map;
+  }, [records, weeks, hideAllSpecialEvents, filterTagIds]);
+
+  const stableGetTagsString = useCallback((record: SpecialRecord) => {
     if (!record || !record.tagIds || record.tagIds.length === 0) return '未命名';
     const tagArray = tags || [];
     return tagArray
       .filter(t => record.tagIds?.includes(t.id))
       .map(t => t.name)
       .join(', ') || '未命名';
-  };
+  }, [tags]);
 
   return (
     <div className="relative w-full h-screen flex flex-col bg-gray-50 dark:bg-gray-950 font-sans overflow-hidden">
@@ -296,125 +541,21 @@ export function Calendar({
                 }
                 
                 const dateStr = `${cell.date.getFullYear()}-${String(cell.date.getMonth() + 1).padStart(2, '0')}-${String(cell.date.getDate()).padStart(2, '0')}`;
-                const dayOfWeek = cell.date.getDay();
-                
-                const allRecords = records || [];
-                
-                // Habit filtering logic: Show if it's within date range AND (it's a repeat day OR already completed)
-                const dailyRecords = allRecords.filter(r => {
-                  if (!r || r.type !== 'daily') return false;
-                  
-                  // 1. Date range constraint
-                  const isWithinRange = (!r.startDate || dateStr >= r.startDate) && 
-                                        (!r.endDate || dateStr <= r.endDate);
-                  if (!isWithinRange) return false;
-
-                  // 2. Repeat day or completed check
-                  const isRepeatDay = !r.repeatDays || r.repeatDays.includes(dayOfWeek);
-                  const isCompleted = (r.completedDates || []).includes(dateStr);
-                  return isRepeatDay || isCompleted;
-                }).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)) as DailyRecord[];
-
-                // FIXED: Enhanced Special Event Filtering Logic
-                const dayEvents = (allRecords.filter(r => r && r.type === 'special' && r.dateStr === dateStr) as SpecialRecord[])
-                  .filter(event => {
-                    // Level 1: Hide all
-                    if (hideAllSpecialEvents) return false;
-                    
-                    // Level 2: Tag filtering
-                    if (filterTagIds && filterTagIds.length > 0) {
-                      return (event.tagIds || []).some(tagId => filterTagIds.includes(tagId));
-                    }
-                    
-                    // Level 3: Show all
-                    return true;
-                  });
-                // Calculate daily progress percentage for Desktop
-                const totalHabits = dailyRecords.length;
-                const completedHabits = dailyRecords.filter(r => (r.completedDates || []).includes(dateStr)).length;
-                const progress = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
-                const isCompletedAll = totalHabits > 0 && progress === 100;
+                const dayData = processedDays.get(dateStr) || { daily: [], special: [] };
 
                 return (
-                <div
+                  <DesktopDayCell
                     key={cIdx}
-                    onClick={() => onOpenModal(cell.date)}
-                    style={{ '--rainbow-progress': `${progress}%` } as React.CSSProperties}
-                    className={`group relative rounded-xl flex flex-col transition-all duration-200 ease-out cursor-pointer overflow-hidden
-                      min-h-[96px] md:min-h-0 md:aspect-square
-                      ${progress > 0 && showRainbowBorder
-                        ? 'rainbow-card border-transparent p-1' 
-                        : 'border border-gray-200/60 dark:border-gray-800'}
-                      ${isCompletedAll && showRainbowBorder ? 'rainbow-card-complete' : ''}
-                      ${cell.isToday && progress === 0
-                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-sm' 
-                        : (progress === 0 ? 'bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50' : 'bg-white dark:bg-gray-900')}
-                      hover:scale-105 hover:z-20 hover:shadow-lg active:scale-95 hover:ring-2 ring-blue-400 ring-offset-2 dark:ring-offset-gray-950`}
-                  >
-                    {/* Date number — Normal flow layout for both mobile and desktop */}
-                    <div className="flex justify-between items-start w-full px-1 pt-1 mb-1 shrink-0 z-10">
-                      <span className={`text-[11px] md:text-sm font-bold md:font-medium leading-none md:bg-white/60 md:dark:bg-black/40 md:rounded-full md:px-1.5 md:py-0.5
-                        ${cell.isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100'}`}>
-                        {cell.label}
-                      </span>
-                    </div>
-
-                    {/* Habits Area — Compact flow layout */}
-                    <div className="habit-container flex flex-wrap gap-0.5 content-start p-0.5 md:p-1 w-full shrink-0">
-                      {(dailyRecords || []).map(record => {
-                        const isCompleted = (record.completedDates || []).includes(dateStr);
-                        const firstChar = record.content?.charAt(0) || '?';
-                        return (
-                          <div
-                            key={`habit-${record.id}`}
-                            title={record.content}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onUpdateRecord({
-                                ...record,
-                                completedDates: isCompleted 
-                                  ? (record.completedDates || []).filter(d => d !== dateStr) 
-                                  : [...(record.completedDates || []), dateStr]
-                              });
-                            }}
-                            className={`w-5 h-5 md:w-7 md:h-7 rounded-sm md:rounded-md transition-all duration-200 shrink-0 flex items-center justify-center text-[11px] md:text-sm font-bold select-none active:scale-90 hover:scale-110
-                              ${isCompleted 
-                                ? 'shadow-sm border-2 border-solid border-black/10 dark:border-white/10' 
-                                : 'bg-gray-100 dark:bg-gray-800 border-[1.5px] border-dashed border-gray-300 dark:border-gray-700 text-gray-400'}
-                            `}
-                            style={isCompleted ? { backgroundColor: record.color?.bg, color: record.color?.text } : {}}
-                          >
-                            {firstChar}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Universal Separator — Visible whenever both sections exist */}
-                    {dailyRecords.length > 0 && dayEvents.length > 0 && (
-                      <div className="w-full border-t border-gray-100 dark:border-gray-800/80 my-1 mx-0" />
-                    )}
-
-                    {/* Events Area */}
-                    <div className="event-container flex flex-col gap-0.5 p-0.5 md:p-1">
-                      {(dayEvents || []).map(record => {
-                        const displayTitle = record.title || getRecordTagsString(record);
-                        return (
-                          <div
-                            key={`special-${record.id}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOpenModal(cell.date, { record, dateStr });
-                            }}
-                            className="text-[9px] md:text-xs px-1.5 py-0.5 md:py-1 rounded shadow-sm text-left truncate font-medium w-full hover:brightness-95 transition-all"
-                            style={{ backgroundColor: record.color?.bg, color: record.color?.text }}
-                          >
-                            {displayTitle}
-                          </div>
-                         );
-                      })}
-                    </div>
-                  </div>
+                    date={cell.date}
+                    dateStr={dateStr}
+                    isToday={cell.isToday}
+                    dailyRecords={dayData.daily}
+                    dayEvents={dayData.special}
+                    showRainbowBorder={showRainbowBorder}
+                    onOpenModal={onOpenModal}
+                    onUpdateRecord={onUpdateRecord}
+                    getRecordTagsString={stableGetTagsString}
+                  />
                 );
               })}
             </div>
@@ -426,115 +567,21 @@ export function Calendar({
           {(weeks || []).flat().filter(c => c && c.date).map((cell, cIdx) => {
             if (!cell || !cell.date) return null;
             const dateStr = `${cell.date.getFullYear()}-${String(cell.date.getMonth() + 1).padStart(2, '0')}-${String(cell.date.getDate()).padStart(2, '0')}`;
-            const dayOfWeek = cell.date.getDay();
-            const allRecords = records || [];
-            
-            const dailyRecords = allRecords.filter(r => {
-              if (!r || r.type !== 'daily') return false;
-              
-              // 1. Date range constraint
-              const isWithinRange = (!r.startDate || dateStr >= r.startDate) && 
-                                    (!r.endDate || dateStr <= r.endDate);
-              if (!isWithinRange) return false;
-
-              // 2. Repeat day or completed check
-              const isRepeatDay = !r.repeatDays || r.repeatDays.includes(dayOfWeek);
-              const isCompleted = (r.completedDates || []).includes(dateStr);
-              return isRepeatDay || isCompleted;
-            }).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)) as DailyRecord[];
-
-            const dayEvents = (allRecords.filter(r => r && r.type === 'special' && r.dateStr === dateStr) as SpecialRecord[])
-              .filter(event => {
-                if (hideAllSpecialEvents) return false;
-                if (filterTagIds && filterTagIds.length > 0) {
-                  return (event.tagIds || []).some(tagId => filterTagIds.includes(tagId));
-                }
-                return true;
-              });
-
-            const shortWeekday = cell.date.toLocaleDateString('en-US', { weekday: 'short' });
-
-            // Calculate daily progress percentage
-            const totalHabits = dailyRecords.length;
-            const completedHabits = dailyRecords.filter(r => (r.completedDates || []).includes(dateStr)).length;
-            const progress = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
-            const isCompletedAll = totalHabits > 0 && progress === 100;
-
-            // Diagnostic Log
-            console.log(`[Diagnostic] Date: ${dateStr} | Total: ${totalHabits} | Completed: ${completedHabits} | Progress: ${progress}%`);
+            const dayData = processedDays.get(dateStr) || { daily: [], special: [] };
 
             return (
-              <div 
+              <MobileDayCell
                 key={`mobile-${cIdx}`}
-                onClick={() => onOpenModal(cell.date)}
-                style={{ '--rainbow-progress': `${progress}%` } as React.CSSProperties}
-                className={`flex w-full h-28 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-gray-900 active:scale-[0.98] transition-all duration-200 
-                  ${progress > 0 && showRainbowBorder ? 'rainbow-card border-transparent p-1' : 'border border-gray-100 dark:border-gray-800'} 
-                  ${isCompletedAll && showRainbowBorder ? 'rainbow-card-complete' : ''}
-                `}
-              >
-                {/* Left Date Region (Compact) */}
-                <div className={`w-16 shrink-0 flex flex-col items-center justify-center border-r bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800`}>
-                  <span className={`text-2xl font-black leading-none tracking-tight ${cell.isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-gray-200'}`}>{cell.label}</span>
-                  <span className={`text-[10px] font-bold mt-1 uppercase tracking-widest ${cell.isToday ? 'text-blue-500' : 'text-slate-400'}`}>{shortWeekday}</span>
-                </div>
-
-                {/* Right Content Region */}
-                <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900">
-                  {/* Habits area - High Density & Large Interactive Squares */}
-                  <div className={`px-2.5 py-1.5 flex-1 flex flex-wrap gap-1.5 items-center content-center bg-white dark:bg-gray-900
-                    ${(dailyRecords.length > 0 && dayEvents.length > 0) ? 'border-b border-gray-50 dark:border-gray-800/80' : ''}`}>
-                    {dailyRecords.map(record => {
-                      const isCompleted = (record.completedDates || []).includes(dateStr);
-                      const firstChar = record.content?.charAt(0) || '?';
-                      return (
-                        <div
-                          key={`mobile-habit-${record.id}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onUpdateRecord({ ...record, completedDates: isCompleted ? (record.completedDates || []).filter(d => d !== dateStr) : [...(record.completedDates || []), dateStr] });
-                          }}
-                          className={`w-[38px] h-[38px] rounded-lg flex items-center justify-center text-xs font-bold transition-all
-                            ${isCompleted 
-                              ? 'shadow-sm border border-black/5 dark:border-white/5' 
-                              : 'bg-gray-100 dark:bg-gray-800/80 text-gray-400 border border-dashed border-gray-200'}`}
-                          style={isCompleted ? { backgroundColor: record.color?.bg, color: record.color?.text } : {}}
-                        >
-                          {firstChar}
-                        </div>
-                      );
-                    })}
-                    {dailyRecords.length === 0 && (
-                      <span className="text-[11px] text-gray-400/60 font-medium italic mt-1 ml-1">No habits scheduled</span>
-                    )}
-                  </div>
-
-                  {/* Special Events area - Matching Height Interactivity */}
-                  {dayEvents.length > 0 && (
-                    <div className="px-2.5 py-1.5 flex flex-col gap-1 justify-center bg-white dark:bg-gray-900 overflow-hidden">
-                      {dayEvents.slice(0, 1).map(record => {
-                        const displayTitle = record.title || getRecordTagsString(record);
-                        return (
-                          <div
-                            key={`mobile-special-${record.id}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOpenModal(cell.date, { record, dateStr });
-                            }}
-                            className="h-[38px] flex items-center px-3 rounded-lg shadow-sm truncate font-bold text-left tracking-tight text-[10px]"
-                            style={{ backgroundColor: record.color?.bg, color: record.color?.text }}
-                          >
-                            {displayTitle}
-                          </div>
-                        );
-                      })}
-                      {dayEvents.length > 1 && (
-                        <span className="text-[9px] text-gray-400 pl-1 font-bold italic">+{dayEvents.length - 1} more event</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+                date={cell.date}
+                dateStr={dateStr}
+                isToday={cell.isToday}
+                dailyRecords={dayData.daily}
+                dayEvents={dayData.special}
+                showRainbowBorder={showRainbowBorder}
+                onOpenModal={onOpenModal}
+                onUpdateRecord={onUpdateRecord}
+                getRecordTagsString={stableGetTagsString}
+              />
             );
           })}
         </div>
