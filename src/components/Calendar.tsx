@@ -327,15 +327,26 @@ export function Calendar({
                     // Level 3: Show all
                     return true;
                   });
+                // Calculate daily progress percentage for Desktop
+                const totalHabits = dailyRecords.length;
+                const completedHabits = dailyRecords.filter(r => (r.completedDates || []).includes(dateStr)).length;
+                const progress = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
+                const isCompletedAll = totalHabits > 0 && progress === 100;
+
                 return (
                 <div
                     key={cIdx}
                     onClick={() => onOpenModal(cell.date)}
-                    className={`group relative rounded-xl border flex flex-col transition-all duration-200 ease-out cursor-pointer
+                    style={{ '--rainbow-progress': `${progress}%` } as React.CSSProperties}
+                    className={`group relative rounded-xl flex flex-col transition-all duration-200 ease-out cursor-pointer overflow-hidden
                       min-h-[96px] md:min-h-0 md:aspect-square
-                      ${cell.isToday 
+                      ${progress > 0 
+                        ? 'rainbow-card border-transparent p-1' 
+                        : 'border border-gray-200/60 dark:border-gray-800'}
+                      ${isCompletedAll ? 'rainbow-card-complete' : ''}
+                      ${cell.isToday && progress === 0
                         ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-sm' 
-                        : 'bg-white dark:bg-gray-900 border-gray-200/60 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50'}
+                        : (progress === 0 ? 'bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50' : 'bg-white dark:bg-gray-900')}
                       hover:scale-105 hover:z-20 hover:shadow-lg active:scale-95 hover:ring-2 ring-blue-400 ring-offset-2 dark:ring-offset-gray-950`}
                   >
                     {/* Date number — Normal flow layout for both mobile and desktop */}
@@ -441,11 +452,24 @@ export function Calendar({
 
             const shortWeekday = cell.date.toLocaleDateString('en-US', { weekday: 'short' });
 
+            // Calculate daily progress percentage
+            const totalHabits = dailyRecords.length;
+            const completedHabits = dailyRecords.filter(r => (r.completedDates || []).includes(dateStr)).length;
+            const progress = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
+            const isCompletedAll = totalHabits > 0 && progress === 100;
+
+            // Diagnostic Log
+            console.log(`[Diagnostic] Date: ${dateStr} | Total: ${totalHabits} | Completed: ${completedHabits} | Progress: ${progress}%`);
+
             return (
               <div 
                 key={`mobile-${cIdx}`}
                 onClick={() => onOpenModal(cell.date)}
-                className={`flex w-full h-28 rounded-xl overflow-hidden shadow-sm border bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 active:scale-[0.98] transition-all duration-200`}
+                style={{ '--rainbow-progress': `${progress}%` } as React.CSSProperties}
+                className={`flex w-full h-28 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-gray-900 active:scale-[0.98] transition-all duration-200 
+                  ${progress > 0 ? 'rainbow-card border-transparent p-1' : 'border border-gray-100 dark:border-gray-800'} 
+                  ${isCompletedAll ? 'rainbow-card-complete' : ''}
+                `}
               >
                 {/* Left Date Region (Compact) */}
                 <div className={`w-16 shrink-0 flex flex-col items-center justify-center border-r bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800`}>

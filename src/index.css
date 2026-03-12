@@ -22,3 +22,83 @@ body {
   min-width: 320px;
   min-height: 100vh;
 }
+
+/* 
+ * Rainbow Progress Border Definitions
+ * Uses @property to allow smooth, hardware-accelerated transitions of conic-gradient angles.
+ */
+@property --rainbow-progress {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+
+@property --angle {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 180deg; /* Starts from top-center */
+}
+
+/* Base wrapper for cards that have progress tracking */
+.rainbow-card {
+  --rainbow-progress: 0%;
+  --angle: 180deg;
+  --rainbow-width: 4px;
+  /* Pastel "Macaron" Rainbow Palette */
+  --rainbow-gradient: conic-gradient(
+    from var(--angle),
+    transparent 0%,
+    transparent calc(100% - var(--rainbow-progress)),
+    #ffb3ba calc(100% - var(--rainbow-progress)),
+    #ffdfba calc(100% - var(--rainbow-progress) * 0.8),
+    #ffffba calc(100% - var(--rainbow-progress) * 0.6),
+    #baffc9 calc(100% - var(--rainbow-progress) * 0.4),
+    #bae1ff calc(100% - var(--rainbow-progress) * 0.2),
+    #dcbaff 100%
+  );
+  position: relative;
+  transition: --rainbow-progress 0.5s ease-out;
+}
+
+/* Pseudo-element creates the actual border */
+.rainbow-card::after {
+  content: '';
+  position: absolute;
+  inset: 0; /* Align perfectly with card outer edge */
+  border-radius: inherit;
+  z-index: 10;
+  pointer-events: none;
+  background: var(--rainbow-gradient);
+  
+  /* Mask it to only show the border portion, leaving the center hollow */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: var(--rainbow-width); /* Border draws inward strictly from edge */
+  opacity: 0.9;
+  transition: --rainbow-progress 0.5s ease-out;
+}
+
+/* Celebration Animation for 100% completion */
+@keyframes rainbow-spin {
+  0% { --angle: 180deg; opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { --angle: 540deg; opacity: 0.8; }
+}
+
+.rainbow-card.rainbow-card-complete::after {
+  animation: rainbow-spin 4s linear infinite;
+  /* Solid macaron gradient without transparency for full completion */
+  background: conic-gradient(
+    from var(--angle),
+    #ffb3ba 0deg, 
+    #ffdfba 60deg, 
+    #ffffba 120deg, 
+    #baffc9 180deg, 
+    #bae1ff 240deg, 
+    #dcbaff 300deg, 
+    #ffb3ba 360deg
+  );
+}
+
