@@ -5,7 +5,7 @@ import { RecordModal } from './components/RecordModal';
 import { AuthView } from './components/AuthView';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabase } from './supabase';
-import { LogOut, User as UserIcon, Share2, LayoutGrid, List, X, Moon, Sun } from 'lucide-react';
+import { LogOut, User as UserIcon, Share2, LayoutGrid, List, X, Moon, Sun, ArrowUp } from 'lucide-react';
 import type { CalendarRecord, SpecialRecord } from './types';
 
 // ── Inline component (avoids external file import issue on Vercel) ────
@@ -71,6 +71,16 @@ function App() {
   const [filterTagIds, setFilterTagIds]       = useState<string[]>([]);
   const [hideAllSpecialEvents, setHideAllSpecialEvents] = useState(false);
   const [previewImage, setPreviewImage]       = useState<string | null>(null);
+  const [showScrollTop, setShowScrollTop]     = useState(false);
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPos = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || (document.body?.scrollTop || 0);
+      setShowScrollTop(scrollPos > 200);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const savedTheme = localStorage.getItem('alibi_theme');
@@ -190,7 +200,16 @@ function App() {
       </div>
 
       {/* Mobile — FAB cluster at bottom-right */}
-      <div className="md:hidden fixed bottom-6 right-4 z-50 flex flex-col items-end gap-2">
+      <div className="md:hidden fixed bottom-6 right-4 z-50 flex flex-col items-end gap-3">
+        {showScrollTop && (
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="w-12 h-12 flex items-center justify-center bg-gradient-to-r from-blue-600 to-indigo-600 shadow-xl shadow-blue-500/30 text-white rounded-full mb-2 active:scale-95 transition-all duration-300 ring-2 ring-white/20 z-[70]"
+            aria-label="Scroll to top"
+          >
+            <ArrowUp size={24} />
+          </button>
+        )}
         {viewMode === 'calendar' && (
           <button
             onClick={() => setIsShareModalOpen(true)}

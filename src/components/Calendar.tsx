@@ -617,12 +617,12 @@ export function Calendar({
       {/* Floating Add Button */}
       <button 
         onClick={() => onOpenModal(new Date())}
-        className="absolute top-6 left-6 z-40 bg-gradient-to-tr from-blue-600 to-indigo-500 hover:from-blue-500 hover:to-indigo-400 text-white p-4 rounded-2xl shadow-xl hover:shadow-2xl shadow-blue-500/30 hover:-translate-y-1 transition-all group border border-white/10"
+        className="fixed top-6 left-6 z-[60] bg-gradient-to-tr from-blue-600 to-indigo-500 hover:from-blue-500 hover:to-indigo-400 text-white p-4 rounded-2xl shadow-xl hover:shadow-2xl shadow-blue-500/30 hover:-translate-y-1 transition-all group border border-white/10"
       >
         <Plus size={28} className="group-hover:rotate-90 transition-transform duration-500" />
       </button>
 
-      <div className="shrink-0 flex items-center justify-center gap-3 sm:gap-6 bg-[var(--nav-bg)]/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/20 px-4 sm:px-6 py-4 shadow-sm z-30 min-h-[72px] transition-colors duration-300">
+      <div className="fixed md:relative top-[68px] md:top-0 left-0 right-0 z-50 shrink-0 flex items-center justify-center gap-3 sm:gap-6 bg-[var(--bg-color)] md:bg-[var(--bg-color)]/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/20 px-4 sm:px-6 py-4 shadow-sm min-h-[72px] transition-colors duration-300">
         <button 
           onClick={prevMonth}
           className="p-1 sm:p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300"
@@ -662,11 +662,14 @@ export function Calendar({
       {/* Grid Scroll Area */}
       <div className="flex flex-col w-full md:max-w-5xl mx-auto items-center px-1 sm:px-6">
         
+        {/* Mobile Sticky Spacer */}
+        <div className="h-[72px] md:hidden shrink-0" />
+
         {/* Weekdays Header */}
         <div className="hidden md:flex shrink-0 w-full py-3 z-30">
           <div className="grid grid-cols-7 gap-0.5 md:gap-2 w-full">
             {['周日', '周一', '周二', '周三', '周四', '周五', '周六'].map(d => (
-              <div key={d} className="text-center text-xs font-bold tracking-widest" style={{ color: 'var(--grid-weekday-text)' }}>
+              <div key={d} className="text-center text-xs md:text-base font-bold tracking-widest" style={{ color: 'var(--grid-weekday-text)' }}>
                 {d}
               </div>
             ))}
