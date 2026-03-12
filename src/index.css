@@ -6,21 +6,100 @@
   line-height: 1.5;
   font-weight: 400;
   color-scheme: light dark;
-  background-color: #f9fafb;
-  color: #1f2937;
+  --bg-color: #FDFCF9;
+  --text-color: #0f172a;
+  --nav-bg: #FFFFFF;
+  --cell-bg: #FFFFFF;
+  --cell-text: #333333;
+  --cell-border: rgba(0, 0, 0, 0.05);
+  --header-text: #0f172a;
+  --today-date-text: #3B82F6;
+  --today-weekday-text: #3B82F6;
+  --grid-weekday-text: #94a3b8;
+  --today-border: #D1D5DB;
+  --today-border-width: 2px;
+  --habit-unchecked-bg: #F0F0F0;
+  --habit-unchecked-text: #888888;
+  --weekday-text: #94a3b8;
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    background-color: #111827;
-    color: #f9fafb;
+    --bg-color: #1A1A1A;
+    --text-color: #f9fafb;
+    --nav-bg: #262626;
+    --cell-bg: rgba(255, 255, 255, 0.08);
+    --cell-text: #FFFFFF;
+    --cell-border: rgba(255, 255, 255, 0.1);
+    --cell-glow: 0 0 10px rgba(255, 255, 255, 0.15);
+    --header-text: #FFFFFF;
+    --today-date-text: #A5B4FC;
+    --today-weekday-text: #A5B4FC;
+    --grid-weekday-text: #A5B4FC;
+    --today-highlight: 0 0 15px rgba(255, 255, 255, 0.15);
+    --today-border: #FFFFFF;
+    --today-border-width: 2.5px;
+    --habit-unchecked-bg: #F0F0F0;
+    --habit-unchecked-border: rgba(255, 255, 255, 0.2);
+    --habit-unchecked-text: #888888;
+    --weekday-text: #FFFFFF;
+    background-color: var(--bg-color);
+    color: var(--text-color);
   }
 }
+
+.dark {
+  --bg-color: #1A1A1A;
+  --text-color: #f9fafb;
+  --nav-bg: #262626;
+  --cell-bg: rgba(255, 255, 255, 0.08);
+  --cell-text: #FFFFFF;
+  --cell-border: rgba(255, 255, 255, 0.1);
+  --cell-glow: 0 0 10px rgba(255, 255, 255, 0.15);
+  --header-text: #FFFFFF;
+  --today-date-text: #A5B4FC;
+  --today-weekday-text: #A5B4FC;
+  --grid-weekday-text: #A5B4FC;
+  --today-highlight: 0 0 15px rgba(255, 255, 255, 0.15);
+  --today-border: #FFFFFF;
+  --today-border-width: 2.5px;
+  --habit-unchecked-bg: #F0F0F0;
+  --habit-unchecked-border: rgba(255, 255, 255, 0.2);
+  --habit-unchecked-text: #888888;
+  --weekday-text: #FFFFFF;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+/* Force high-contrast text color reversal on hover for Dark Mode */
+.dark .force-white-reverse-hover {
+  color: #FFFFFF !important;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.dark .force-white-reverse-hover:hover,
+.dark .group\/header:hover .force-white-reverse-hover {
+  color: #0f172a !important; /* slate-900 */
+}
+
+
+
+
+
+
+
+
+
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* 

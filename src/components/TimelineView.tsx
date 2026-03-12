@@ -85,10 +85,12 @@ export function TimelineView({
             return (
               <div key={dateStr} className="relative group">
                 {/* Date Header */}
-                <div className="flex items-baseline gap-3 mb-4 pl-1">
-                  <span className="text-3xl font-black text-slate-900 tracking-tighter">{day}</span>
-                  <span className="text-xl font-bold text-slate-400 italic tracking-tight uppercase">{monthName}</span>
-                  <span className="text-xs font-bold text-slate-300 uppercase letter-spacing-[0.1em]">{weekday}</span>
+                <div className="flex items-baseline gap-3 mb-4 pl-1 hover:bg-gray-100 dark:hover:bg-white transition-all rounded-xl px-2 -ml-2 cursor-default group/header">
+                  <span className="text-3xl font-black text-slate-900 dark:text-white force-white-reverse-hover tracking-tighter">
+                    {day}
+                  </span>
+                  <span className="text-xl font-bold text-slate-400 dark:text-slate-300 italic tracking-tight uppercase">{monthName}</span>
+                  <span className="text-xs font-bold text-slate-300 dark:text-slate-400 uppercase letter-spacing-[0.1em]">{weekday}</span>
                 </div>
 
                 {/* Card Container */}

@@ -306,7 +306,7 @@ export function RecordModal({
                       type="text"
                       value={dailyContent}
                       onChange={(e) => setDailyContent(e.target.value)}
-                      className="flex-1 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400 text-sm"
+                      className="flex-1 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400 text-sm text-slate-900 dark:text-slate-100"
                       placeholder="习惯名称，例如：阅读..."
                       maxLength={20}
                     />
@@ -337,7 +337,7 @@ export function RecordModal({
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300">📅 有效周期 (可选)</label>
+                  <label className="text-sm font-bold text-gray-700">📅 有效周期 (可选)</label>
                   <div className="flex gap-3">
                     <div className="flex-1 space-y-1">
                       <span className="text-[10px] text-gray-400 font-bold uppercase pl-1">开始日期</span>
@@ -345,7 +345,7 @@ export function RecordModal({
                         type="date"
                         value={habitStartDate}
                         onChange={(e) => setHabitStartDate(e.target.value)}
-                        className="w-full p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full p-2.5 rounded-xl border border-gray-200 bg-white text-slate-900 dark:text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div className="flex-1 space-y-1">
@@ -354,7 +354,7 @@ export function RecordModal({
                         type="date"
                         value={habitEndDate}
                         onChange={(e) => setHabitEndDate(e.target.value)}
-                        className="w-full p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full p-2.5 rounded-xl border border-gray-200 bg-white text-slate-900 dark:text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </div>
@@ -403,7 +403,7 @@ export function RecordModal({
                             type="text"
                             value={editHabitName}
                             onChange={(e) => setEditHabitName(e.target.value)}
-                            className="bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100"
                             placeholder="习惯名称..."
                             autoFocus
                           />
@@ -419,7 +419,7 @@ export function RecordModal({
                                     onClick={() => setEditHabitDays(prev =>
                                       active ? prev.filter(d => d !== day.value) : [...prev, day.value].sort()
                                     )}
-                                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all shrink-0 ${active ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-400 border border-gray-100 dark:border-gray-700'
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all shrink-0 ${active ? 'bg-blue-600 text-white' : 'bg-[#F0F0F0] text-[var(--habit-unchecked-text)] border border-gray-100 dark:border-[rgba(255,255,255,0.2)] dark:hover:bg-gray-200'
                                       }`}
                                   >
                                     {day.label}
@@ -432,18 +432,18 @@ export function RecordModal({
                           <div className="space-y-2">
                              <label className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">有效周期</label>
                              <div className="flex gap-2">
-                               <input
-                                 type="date"
-                                 value={editHabitStartDate}
-                                 onChange={(e) => setEditHabitStartDate(e.target.value)}
-                                 className="flex-1 p-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg text-[11px] outline-none"
-                               />
-                               <input
-                                 type="date"
-                                 value={editHabitEndDate}
-                                 onChange={(e) => setEditHabitEndDate(e.target.value)}
-                                 className="flex-1 p-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg text-[11px] outline-none"
-                               />
+                                 <input
+                                   type="date"
+                                   value={editHabitStartDate}
+                                   onChange={(e) => setEditHabitStartDate(e.target.value)}
+                                   className="flex-1 p-2 bg-white border border-blue-200 rounded-lg text-[11px] text-slate-900 dark:text-slate-900 outline-none"
+                                 />
+                                 <input
+                                   type="date"
+                                   value={editHabitEndDate}
+                                   onChange={(e) => setEditHabitEndDate(e.target.value)}
+                                   className="flex-1 p-2 bg-white border border-blue-200 rounded-lg text-[11px] text-slate-900 dark:text-slate-900 outline-none"
+                                 />
                              </div>
                           </div>
 
@@ -539,7 +539,7 @@ export function RecordModal({
                             return (
                               <div
                                 key={day.value}
-                                className={`w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-bold transition-all ${isSelected ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-gray-50 dark:bg-gray-800 text-gray-300'
+                                className={`w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-bold transition-all ${isSelected ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-[#F0F0F0] text-[var(--habit-unchecked-text)] dark:hover:bg-gray-200'
                                   }`}
                               >
                                 {day.label}
@@ -568,7 +568,7 @@ export function RecordModal({
                     type="text"
                     value={specialTitle}
                     onChange={(e) => setSpecialTitle(e.target.value)}
-                    className="w-full p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all placeholder:text-gray-400 text-sm"
+                    className="w-full p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all placeholder:text-gray-400 text-sm text-slate-900 dark:text-slate-100"
                     placeholder="请输入事件名称"
                     maxLength={30}
                   />
@@ -577,13 +577,13 @@ export function RecordModal({
                 <div className="space-y-3">
                   <label className="text-sm font-bold text-gray-700 dark:text-gray-300">📅 选择日期</label>
                   <div className="grid grid-cols-3 gap-2">
-                    <select value={selYear} onChange={e => setSelYear(Number(e.target.value))} className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-sm">
+                    <select value={selYear} onChange={e => setSelYear(Number(e.target.value))} className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-sm text-gray-800 dark:text-gray-100">
                       {currentYears.map(v => <option key={v} value={v}>{v}年</option>)}
                     </select>
-                    <select value={selMonth} onChange={e => setSelMonth(Number(e.target.value))} className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-sm">
+                    <select value={selMonth} onChange={e => setSelMonth(Number(e.target.value))} className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-sm text-gray-800 dark:text-gray-100">
                       {currentMonths.map(v => <option key={v} value={v}>{v}月</option>)}
                     </select>
-                    <select value={selDay} onChange={e => setSelDay(Number(e.target.value))} className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-sm">
+                    <select value={selDay} onChange={e => setSelDay(Number(e.target.value))} className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-sm text-gray-800 dark:text-gray-100">
                       {currentDays.map(v => <option key={v} value={v}>{v}日</option>)}
                     </select>
                   </div>

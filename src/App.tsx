@@ -5,7 +5,7 @@ import { RecordModal } from './components/RecordModal';
 import { AuthView } from './components/AuthView';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabase } from './supabase';
-import { LogOut, User as UserIcon, Share2, LayoutGrid, List, X } from 'lucide-react';
+import { LogOut, User as UserIcon, Share2, LayoutGrid, List, X, Moon, Sun } from 'lucide-react';
 import type { CalendarRecord, SpecialRecord } from './types';
 
 // ── Inline component (avoids external file import issue on Vercel) ────
@@ -72,6 +72,23 @@ function App() {
   const [hideAllSpecialEvents, setHideAllSpecialEvents] = useState(false);
   const [previewImage, setPreviewImage]       = useState<string | null>(null);
   
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const savedTheme = localStorage.getItem('alibi_theme');
+    if (savedTheme) {
+      return savedTheme as 'light' | 'dark';
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('alibi_theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
   // -- Rainbow Border Toggle --
   const [showRainbowBorder, setShowRainbowBorder] = useState<boolean>(() => {
     const saved = localStorage.getItem('alibi_show_rainbow_border');
@@ -96,7 +113,6 @@ function App() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    // State is cleaned up by the onAuthStateChange listener above
   };
 
   // ── Loading spinner ──────────────────────────────────────────────────
@@ -115,9 +131,9 @@ function App() {
 
   // ── Main app ─────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#FDFCF9] dark:bg-gray-950 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-color)] transition-colors duration-300 relative overflow-x-hidden">
       {/* Top Header — view switcher (centered, both breakpoints) */}
-      <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-1 p-1 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-800 shadow-[0_8px_32px_rgba(0,0,0,0.05)] w-auto max-w-[90vw]">
+      <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-1 p-1 bg-[var(--nav-bg)]/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-800/20 shadow-[0_8px_32px_rgba(0,0,0,0.05)] w-auto max-w-[90vw] transition-colors duration-300">
         <button
           onClick={() => setViewMode('calendar')}
           className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 sm:gap-2 shrink-0 ${
@@ -139,6 +155,13 @@ function App() {
         >
           <List size={14} className="sm:w-4 sm:h-4" />
           <span>时间轴</span>
+        </button>
+        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shrink-0"
+        >
+          {theme === 'dark' ? <Moon size={16} className="sm:w-4 sm:h-4" /> : <Sun size={16} className="sm:w-4 sm:h-4" />}
         </button>
       </div>
 

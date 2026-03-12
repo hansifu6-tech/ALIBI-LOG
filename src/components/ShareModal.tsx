@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Calendar as CalendarIcon, CheckSquare, Square, Share2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { X, Calendar as CalendarIcon, CheckSquare, Square, Share2, ChevronLeft, ChevronRight, Loader2, Layout, Sun } from 'lucide-react';
 import type { CalendarRecord, RecordTag, DailyRecord } from '../types';
 
 interface ShareModalProps {
@@ -7,7 +7,14 @@ interface ShareModalProps {
   onClose: () => void;
   records: CalendarRecord[];
   tags: RecordTag[];
-  onStartGenerate?: (settings: { startDate: string, endDate: string, selectedHabitIds: string[], selectedTagIds: string[] }) => void;
+  onStartGenerate?: (settings: { 
+    startDate: string, 
+    endDate: string, 
+    selectedHabitIds: string[], 
+    selectedTagIds: string[],
+    shareType: 'calendar' | 'achievement',
+    posterTheme: 'light' | 'dark'
+  }) => void;
 }
 
 export function ShareModal({ isOpen, onClose, records, tags, onStartGenerate }: ShareModalProps) {
@@ -16,6 +23,8 @@ export function ShareModal({ isOpen, onClose, records, tags, onStartGenerate }: 
   const [endValue, setEndValue] = useState<Date | null>(null);
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [shareType, setShareType] = useState<'calendar' | 'achievement'>('calendar');
+  const [posterTheme, setPosterTheme] = useState<'light' | 'dark'>('light');
   const [isGenerating, setIsGenerating] = useState(false);
 
   const habits = records.filter(r => r.type === 'daily') as DailyRecord[];
@@ -105,7 +114,9 @@ export function ShareModal({ isOpen, onClose, records, tags, onStartGenerate }: 
         startDate: startValue ? formatDate(startValue) : '',
         endDate: endValue ? formatDate(endValue) : '',
         selectedHabitIds,
-        selectedTagIds
+        selectedTagIds,
+        shareType,
+        posterTheme
       });
     }
 
@@ -125,14 +136,82 @@ export function ShareModal({ isOpen, onClose, records, tags, onStartGenerate }: 
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
               <Share2 size={24} />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">配置分享日历</h3>
+            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">海报设置</h3>
           </div>
-          <button onClick={onClose} disabled={isGenerating} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-500">
+          <button 
+            onClick={onClose} 
+            disabled={isGenerating} 
+            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-400"
+          >
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Settings Grid Row */}
+          <div className="space-y-4">
+            {/* Share Type Selection */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Layout className="text-gray-400" size={18} />
+                <span className="text-base font-bold text-gray-800 dark:text-gray-200">模式</span>
+              </div>
+              <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-48 relative">
+                <button
+                  onClick={() => setShareType('calendar')}
+                  className={`flex-1 relative z-10 py-1.5 text-sm font-bold transition-colors duration-200 ${
+                    shareType === 'calendar' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  📅 日历版
+                </button>
+                <button
+                  onClick={() => setShareType('achievement')}
+                  className={`flex-1 relative z-10 py-1.5 text-sm font-bold transition-colors duration-200 ${
+                    shareType === 'achievement' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  🏆 总结版
+                </button>
+                <div 
+                  className={`absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-white dark:bg-gray-700 rounded-lg shadow-sm transition-all duration-300 ease-out transform ${
+                    shareType === 'achievement' ? 'translate-x-full' : 'translate-x-0'
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Poster Theme Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sun size={18} className="text-gray-400" />
+                <span className="text-base font-bold text-gray-800 dark:text-gray-200">颜色</span>
+              </div>
+              <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-48 relative">
+                <button
+                  onClick={() => setPosterTheme('light')}
+                  className={`flex-1 relative z-10 py-1.5 text-sm font-bold transition-colors duration-200 ${
+                    posterTheme === 'light' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  ☀️ 浅色
+                </button>
+                <button
+                  onClick={() => setPosterTheme('dark')}
+                  className={`flex-1 relative z-10 py-1.5 text-sm font-bold transition-colors duration-200 ${
+                    posterTheme === 'dark' ? 'text-blue-500 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  🌙 深色
+                </button>
+                <div 
+                  className={`absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-white dark:bg-gray-700 rounded-lg shadow-sm transition-all duration-300 ease-out transform ${
+                    posterTheme === 'dark' ? 'translate-x-full' : 'translate-x-0'
+                  }`}
+                />
+              </div>
+            </div>
+          </div>
           
           {/* Date Range Picker */}
           <section>
@@ -241,16 +320,18 @@ export function ShareModal({ isOpen, onClose, records, tags, onStartGenerate }: 
                 <button
                   key={habit.id}
                   onClick={() => setSelectedHabitIds(prev => prev.includes(habit.id) ? prev.filter(id => id !== habit.id) : [...prev, habit.id])}
-                  className={`flex items-center gap-2 p-2.5 rounded-xl border-2 transition-all text-left
+                  className={`flex items-center gap-2 p-2.5 rounded-xl border-2 transition-all text-left box-border
                     ${selectedHabitIds.includes(habit.id) 
                       ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10' 
                       : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 opacity-60'}`}
                 >
-                  {selectedHabitIds.includes(habit.id) ? (
-                    <CheckSquare size={16} className="text-emerald-500 shrink-0" />
-                  ) : (
-                    <Square size={16} className="text-gray-300 shrink-0" />
-                  )}
+                  <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                    {selectedHabitIds.includes(habit.id) ? (
+                      <CheckSquare size={16} className="text-emerald-500" />
+                    ) : (
+                      <Square size={16} className="text-gray-300" />
+                    )}
+                  </div>
                   <span className="text-xs font-bold truncate tracking-tight">{habit.content}</span>
                 </button>
               ))}

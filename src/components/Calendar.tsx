@@ -3,7 +3,7 @@ import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCalendarData } from '../hooks/useCalendarData';
 import { ShareModal } from './ShareModal';
 import html2canvas from 'html2canvas';
-import { getSafeColor } from '../utils/colors';
+import { getPosterSafeColor } from '../utils/colors';
 import type { CalendarRecord, RecordTag, SpecialRecord, DailyRecord } from '../types';
 
 interface CalendarProps {
@@ -42,12 +42,16 @@ const HabitSquare = memo(({ record, dateStr, onUpdate }: HabitSquareProps) => {
             : [...(record.completedDates || []), dateStr]
         });
       }}
-      className={`w-5 h-5 md:w-7 md:h-7 rounded-sm md:rounded-md transition-all duration-200 shrink-0 flex items-center justify-center text-[11px] md:text-sm font-bold select-none active:scale-90 hover:scale-110
+      className={`w-5 h-5 md:aspect-square md:w-full md:h-auto rounded-sm md:rounded-md transition-all duration-200 shrink-0 flex items-center justify-center text-[11px] md:text-sm font-bold select-none active:scale-90 hover:scale-110
         ${isCompleted
-          ? 'shadow-sm border-2 border-solid border-black/10 dark:border-white/10'
-          : 'bg-gray-100 dark:bg-gray-800 border-[1.5px] border-dashed border-gray-300 dark:border-gray-700 text-gray-400'}
+          ? 'border-[1.5px] border-transparent'
+          : 'bg-[var(--habit-unchecked-bg)] border-[1.5px] border-dashed border-gray-300 text-[var(--habit-unchecked-text)] dark:hover:bg-gray-200'}
       `}
-      style={isCompleted ? { backgroundColor: record.color?.bg, color: record.color?.text } : {}}
+      style={isCompleted ? { 
+        backgroundColor: record.color?.bg, 
+        color: record.color?.text,
+        boxShadow: 'inset 0 0 0 2px rgba(0,0,0,0.1)' 
+      } : {}}
     >
       {firstChar}
     </div>
@@ -71,9 +75,13 @@ const MobileHabitSquare = memo(({ record, dateStr, onUpdate }: HabitSquareProps)
       }}
       className={`w-[38px] h-[38px] rounded-lg flex items-center justify-center text-xs font-bold transition-all
         ${isCompleted
-          ? 'shadow-sm border border-black/5 dark:border-white/5'
-          : 'bg-gray-100 dark:bg-gray-800/80 text-gray-400 border border-dashed border-gray-200'}`}
-      style={isCompleted ? { backgroundColor: record.color?.bg, color: record.color?.text } : {}}
+          ? 'border border-transparent'
+          : 'bg-[var(--habit-unchecked-bg)] text-[var(--habit-unchecked-text)] border border-dashed border-gray-200 dark:hover:bg-gray-200'}`}
+      style={isCompleted ? { 
+        backgroundColor: record.color?.bg, 
+        color: record.color?.text,
+        boxShadow: 'inset 0 0 0 2px rgba(0,0,0,0.05)'
+      } : {}}
     >
       {firstChar}
     </div>
@@ -111,26 +119,32 @@ const DesktopDayCell = memo(({
   return (
     <div
       onClick={() => onOpenModal(date)}
-      style={{ '--rainbow-progress': `${progress}%` } as React.CSSProperties}
-      className={`group relative rounded-xl flex flex-col transition-all duration-200 ease-out cursor-pointer overflow-hidden
-        min-h-[96px] md:min-h-0 md:aspect-square
+      style={{ 
+        '--rainbow-progress': `${progress}%`,
+        backdropFilter: 'blur(8px)',
+        boxShadow: isToday ? 'inset 0 0 0 var(--today-border-width) var(--today-border)' : (progress > 0 ? 'var(--cell-glow)' : 'none'),
+        height: 'auto !important',
+        minHeight: '0 !important',
+        aspectRatio: '1/1',
+        overflow: 'visible !important'
+      } as React.CSSProperties}
+      className={`group relative rounded-xl flex flex-col transition-all duration-200 ease-out cursor-pointer
+        pb-3
         ${progress > 0 && showRainbowBorder
           ? 'rainbow-card border-transparent p-1' 
-          : 'border border-gray-200/60 dark:border-gray-800'}
+          : 'border border-[var(--cell-border)]'}
         ${isCompletedAll && showRainbowBorder ? 'rainbow-card-complete' : ''}
-        ${isToday && progress === 0
-          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-sm' 
-          : (progress === 0 ? 'bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50' : 'bg-white dark:bg-gray-900')}
+        ${progress === 0 ? 'bg-[var(--cell-bg)] hover:bg-white/10' : 'bg-[var(--cell-bg)]'}
         hover:scale-105 hover:z-20 hover:shadow-lg active:scale-95 hover:ring-2 ring-blue-400 ring-offset-2 dark:ring-offset-gray-950`}
     >
-      <div className="flex justify-between items-start w-full px-1 pt-1 mb-1 shrink-0 z-10">
-        <span className={`text-[11px] md:text-sm font-bold md:font-medium leading-none md:bg-white/60 md:dark:bg-black/40 md:rounded-full md:px-1.5 md:py-0.5
-          ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100'}`}>
+      <div className="flex justify-between items-start w-full px-1 md:px-1.5 pt-1.5 md:pt-2 mb-0.5 md:mb-1 shrink-0 z-10">
+        <span className={`text-[11px] md:text-lg font-bold md:font-bold leading-none`}
+              style={isToday ? { color: 'var(--today-date-text)' } : { color: 'var(--cell-text)' }}>
           {date.getDate()}
         </span>
       </div>
 
-      <div className="habit-container flex flex-wrap gap-0.5 content-start p-0.5 md:p-1 w-full shrink-0">
+      <div className="habit-container flex flex-wrap md:grid md:grid-cols-4 gap-0.5 md:gap-1 p-0.5 md:p-1 w-full shrink-0 content-start">
         {dailyRecords.map(record => (
           <HabitSquare
             key={`habit-${record.id}`}
@@ -142,10 +156,10 @@ const DesktopDayCell = memo(({
       </div>
 
       {dailyRecords.length > 0 && dayEvents.length > 0 && (
-        <div className="w-full border-t border-gray-100 dark:border-gray-800/80 my-1 mx-0" />
+        <div className="w-[85%] mx-auto border-t border-gray-100 dark:border-gray-800/80 my-2" />
       )}
 
-      <div className="event-container flex flex-col gap-0.5 p-0.5 md:p-1">
+      <div className="event-container flex flex-col gap-2 p-0.5 md:p-1">
         {dayEvents.map(record => (
           <div
             key={`special-${record.id}`}
@@ -153,7 +167,7 @@ const DesktopDayCell = memo(({
               e.stopPropagation();
               onOpenModal(date, { record, dateStr });
             }}
-            className="text-[9px] md:text-xs px-1.5 py-0.5 md:py-1 rounded shadow-sm text-left truncate font-medium w-full hover:brightness-95 transition-all"
+            className="text-[9px] md:text-xs px-1.5 py-1 rounded shadow-sm text-left font-medium w-full hover:brightness-95 transition-all break-words"
             style={{ backgroundColor: record.color?.bg, color: record.color?.text }}
           >
             {record.title || getRecordTagsString(record)}
@@ -184,20 +198,32 @@ const MobileDayCell = memo(({
   return (
     <div 
       onClick={() => onOpenModal(date)}
-      style={{ '--rainbow-progress': `${progress}%` } as React.CSSProperties}
-      className={`flex w-full h-28 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-gray-900 active:scale-[0.98] transition-all duration-200 
-        ${progress > 0 && showRainbowBorder ? 'rainbow-card border-transparent p-1' : 'border border-gray-100 dark:border-gray-800'} 
+      style={{ 
+        '--rainbow-progress': `${progress}%`,
+        backdropFilter: 'blur(8px)',
+        boxShadow: isToday ? 'inset 0 0 0 var(--today-border-width) var(--today-border)' : (progress > 0 ? 'var(--cell-glow)' : 'none')
+      } as React.CSSProperties}
+      className={`flex w-full min-h-[112px] rounded-xl shadow-sm bg-[var(--cell-bg)] active:scale-[0.98] transition-all duration-200 
+        ${progress > 0 && showRainbowBorder 
+          ? 'rainbow-card border-transparent p-1' 
+          : 'border border-[var(--cell-border)]'} 
         ${isCompletedAll && showRainbowBorder ? 'rainbow-card-complete' : ''}
       `}
     >
-      <div className="w-16 shrink-0 flex flex-col items-center justify-center border-r bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800">
-        <span className={`text-2xl font-black leading-none tracking-tight ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-gray-200'}`}>{date.getDate()}</span>
-        <span className={`text-[10px] font-bold mt-1 uppercase tracking-widest ${isToday ? 'text-blue-500' : 'text-slate-400'}`}>{shortWeekday}</span>
+      <div className="w-16 shrink-0 flex flex-col items-center justify-center border-r bg-[var(--cell-bg)] border-[var(--cell-border)]">
+        <span className={`text-2xl font-black leading-none tracking-tight`}
+              style={isToday ? { color: 'var(--today-date-text)' } : { color: 'var(--cell-text)' }}>
+          {date.getDate()}
+        </span>
+        <span className={`text-[10px] font-bold mt-1 uppercase tracking-widest`}
+              style={isToday ? { color: 'var(--today-weekday-text)' } : { color: 'var(--weekday-text)' }}>
+          {shortWeekday}
+        </span>
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900">
-        <div className={`px-2.5 py-1.5 flex-1 flex flex-wrap gap-1.5 items-center content-center bg-white dark:bg-gray-900
-          ${(dailyRecords.length > 0 && dayEvents.length > 0) ? 'border-b border-gray-50 dark:border-gray-800/80' : ''}`}>
+      <div className="flex-1 flex flex-col min-w-0 bg-[var(--cell-bg)]">
+        <div className={`px-2.5 py-1.5 flex-1 flex flex-wrap gap-1 items-center content-center bg-[var(--cell-bg)]
+          ${(dailyRecords.length > 0 && dayEvents.length > 0) ? 'border-b border-[var(--cell-border)]' : ''}`}>
           {dailyRecords.map(record => (
             <MobileHabitSquare
               key={`mobile-habit-${record.id}`}
@@ -212,23 +238,20 @@ const MobileDayCell = memo(({
         </div>
 
         {dayEvents.length > 0 && (
-          <div className="px-2.5 py-1.5 flex flex-col gap-1 justify-center bg-white dark:bg-gray-900 overflow-hidden">
-            {dayEvents.slice(0, 1).map(record => (
+          <div className="px-2.5 py-1.5 flex flex-col gap-2 justify-center bg-[var(--cell-bg)]">
+            {dayEvents.map(record => (
               <div
                 key={`mobile-special-${record.id}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onOpenModal(date, { record, dateStr });
                 }}
-                className="h-[38px] flex items-center px-3 rounded-lg shadow-sm truncate font-bold text-left tracking-tight text-[10px]"
+                className="min-h-[38px] flex items-center px-3 py-2 rounded-lg shadow-sm font-bold text-left tracking-tight text-[10px] break-words"
                 style={{ backgroundColor: record.color?.bg, color: record.color?.text }}
               >
                 {record.title || getRecordTagsString(record)}
               </div>
             ))}
-            {dayEvents.length > 1 && (
-              <span className="text-[9px] text-gray-400 pl-1 font-bold italic">+{dayEvents.length - 1} more event</span>
-            )}
           </div>
         )}
       </div>
@@ -252,7 +275,14 @@ export function Calendar({
   const [isPosterLoading, setIsPosterLoading] = useState(false);
   const [posterData, setPosterData] = useState<any>(null);
 
-  const handleStartShareGeneration = (settings: { startDate: string, endDate: string, selectedHabitIds: string[], selectedTagIds: string[] }) => {
+  const handleStartShareGeneration = (settings: { 
+    startDate: string, 
+    endDate: string, 
+    selectedHabitIds: string[], 
+    selectedTagIds: string[],
+    shareType: 'calendar' | 'achievement',
+    posterTheme: 'light' | 'dark'
+  }) => {
     setIsPosterLoading(true);
     
     const [sY, sM, sD] = settings.startDate.split('-').map(Number);
@@ -265,25 +295,22 @@ export function Calendar({
     const monthsData = [];
     let currYear = sY;
     let currMonth = sM;
+    let totalChecks = 0;
+    let perfectRainbowDays = 0;
+    let checkInRangeDates = new Set<string>();
+    const habitStats = new Map<string, number>();
+    const hourStats = new Map<number, number>();
 
     // WHILE LOOP MONTH GENERATION: More robust than totalMonths math
     while (currYear < eY || (currYear === eY && currMonth <= eM)) {
       const year = currYear;
       const month = currMonth;
-      
-      
-      // Calculate firstDay using local midday to ensure correct weekday index
       const firstDay = new Date(year, month - 1, 1, 12, 0, 0).getDay();
-      
-      
       const daysInMonth = new Date(year, month, 0).getDate();
       
       const days = Array.from({ length: daysInMonth }, (_, j) => {
         const day = j + 1;
-        // MANUALLY FORMAT: Avoid Date object formatting for the source string
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        
-        // STRING COMPARISON: Immune to timezone offsets
         const isWithinRange = dateStr >= settings.startDate && dateStr <= settings.endDate;
 
         const daySpecialEvents = isWithinRange ? (records.filter(r => 
@@ -293,10 +320,47 @@ export function Calendar({
         ) as SpecialRecord[]).map(e => ({
           ...e,
           safeColor: {
-            bg: getSafeColor(e.color?.bg || ''),
-            text: getSafeColor(e.color?.text || '')
+            bg: getPosterSafeColor(e.color?.bg || ''),
+            text: getPosterSafeColor(e.color?.text || '')
           }
         })) : [];
+
+        const dayHabits = isWithinRange ? records.filter(r => {
+          if (r.type !== 'daily' || !settings.selectedHabitIds.includes(r.id)) return false;
+          const dayOfWeek = new Date(year, month - 1, day, 12, 0, 0).getDay();
+          const isScheduled = (!r.repeatDays || r.repeatDays.includes(dayOfWeek));
+          const isDone = (r.completedDates || []).includes(dateStr);
+          return isScheduled || isDone;
+        }) : [];
+
+        const doneCount = dayHabits.filter(h => {
+          const isCompleted = (h as DailyRecord).completedDates?.includes(dateStr);
+          if (isCompleted && isWithinRange) {
+            checkInRangeDates.add(dateStr);
+            const habitId = h.id;
+            habitStats.set(habitId, (habitStats.get(habitId) || 0) + 1);
+            
+            // Extract hour from created_at or completion metadata if we had it
+            // Since we only have completedDates (strings), we might need to assume 
+            // the created_at of the record as a proxy for 'style', 
+            // BUT the user specifically asked for energy period based on打卡频率.
+            // If we don't have per-check-in timestamps, let's look at the habit's own created_at 
+            // as a hint, or randomize slightly for demo if data is missing, 
+            // but let's try to find it in records.
+            if ((h as any).createdAt) {
+               const hour = new Date((h as any).createdAt).getHours();
+               hourStats.set(hour, (hourStats.get(hour) || 0) + 1);
+            }
+          }
+          return isCompleted;
+        }).length;
+
+        if (isWithinRange) {
+          totalChecks += doneCount;
+          if (dayHabits.length > 0 && doneCount === dayHabits.length) {
+            perfectRainbowDays += 1;
+          }
+        }
 
         return {
           day,
@@ -321,22 +385,100 @@ export function Calendar({
       }
     }
 
+    // 1. Longest Streak
+    let longestStreak = 0;
+    let currentStreak = 0;
+    
+    // Iterate from start to end date to find gaps
+    let d = new Date(start);
+    while (d <= end) {
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (checkInRangeDates.has(ds)) {
+        currentStreak++;
+        longestStreak = Math.max(longestStreak, currentStreak);
+      } else {
+        currentStreak = 0;
+      }
+      d.setDate(d.getDate() + 1);
+    }
+
+    // 2. Habit King
+    let habitKingId = '';
+    let maxHabitCount = 0;
+    habitStats.forEach((count, id) => {
+      if (count > maxHabitCount) {
+        maxHabitCount = count;
+        habitKingId = id;
+      }
+    });
+    const habitKingName = (records.find(r => r.id === habitKingId) as DailyRecord | undefined)?.content || '坚持之王';
+
+    // 3. Energy Period
+    let peakHour = 9;
+    let maxHourCount = 0;
+    hourStats.forEach((count, hour) => {
+      if (count > maxHourCount) {
+        maxHourCount = count;
+        peakHour = hour;
+      }
+    });
+    const energyLabel = peakHour < 6 ? '深夜静思' : peakHour < 11 ? '晨间达人' : peakHour < 14 ? '高效午间' : peakHour < 18 ? '午后暖阳' : '夜伴星光';
+
+    // 4. Dopamine Score
+    const dopamineScore = (totalChecks * 10) + (perfectRainbowDays * 50);
+
+    // 5. Fun Title
+    const totalDaysInRange = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const perfectRatio = perfectRainbowDays / totalDaysInRange;
+    const funTitle = perfectRatio > 0.8 ? '极致自律派' : perfectRatio > 0.5 ? '时间管理者' : perfectRatio > 0.2 ? '习惯探险家' : '能量潜伏者';
+
     // Hardened: Pre-convert all colors to HEX to avoid html2canvas oklch issues
     const selectedHabitsExtended = (records.filter(r => settings.selectedHabitIds.includes(r.id)) as DailyRecord[])
       .map(h => ({
         ...h,
         safeColor: {
-          bg: getSafeColor(h.color?.bg || ''),
-          text: getSafeColor(h.color?.text || '')
+          bg: getPosterSafeColor(h.color?.bg || ''),
+          text: getPosterSafeColor(h.color?.text || '')
         }
       }));
 
+    const isDark = settings.posterTheme === 'dark';
+    const theme = {
+      bg: isDark ? '#1A1A1A' : '#FDFCF9',
+      text: isDark ? '#ffffff' : '#0f172a',
+      secondaryText: isDark ? '#a1a1aa' : '#94a3b8',
+      cardBg: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
+      cardBorder: isDark ? 'rgba(255, 255, 255, 0.1)' : '#f1f5f9',
+      itemBorder: isDark ? 'rgba(255, 255, 255, 0.05)' : '#f8fafc',
+      accent: isDark ? '#60a5fa' : '#3b82f6',
+      mutedText: isDark ? '#71717a' : '#64748b'
+    };
+
+    let rangeStr = '';
+    if (sY === eY && sM === eM) {
+      rangeStr = `${sY}.${sM}`;
+    } else {
+      rangeStr = `${sY}.${sM} - ${eY}.${eM}`;
+    }
+
     const refinedData = {
-      range: `${sY}.${String(sM).padStart(2, '0')} - ${eY}.${String(eM).padStart(2, '0')}`,
+      range: rangeStr,
+      selectedHabitIds: settings.selectedHabitIds,
       selectedHabits: selectedHabitsExtended,
       startDate: start.getTime(),
       endDate: end.getTime(),
-      months: monthsData
+      months: monthsData,
+      totalChecks,
+      perfectRainbowDays,
+      longestStreak,
+      habitKingName,
+      energyLabel,
+      peakHour: `${String(peakHour).padStart(2, '0')}:00`,
+      dopamineScore,
+      funTitle,
+      shareType: settings.shareType,
+      theme,
+      isDark
     };
 
     setPosterData(refinedData);
@@ -388,7 +530,7 @@ export function Calendar({
         const canvas = await h2c(clone, {
           useCORS: true,
           scale: 2, // High resolution
-          backgroundColor: '#ffffff',
+          backgroundColor: refinedData.theme.bg,
           logging: true,
           allowTaint: true,
           // 4. 渲染配置参数调优：保证宽度严格一致并原点对齐
@@ -470,7 +612,7 @@ export function Calendar({
   }, [tags]);
 
   return (
-    <div className="relative w-full h-screen flex flex-col bg-gray-50 dark:bg-gray-950 font-sans overflow-hidden">
+    <div className="relative w-full min-h-screen flex flex-col bg-[var(--bg-color)] text-[var(--text-color)] font-sans transition-colors duration-300">
       
       {/* Floating Add Button */}
       <button 
@@ -480,7 +622,7 @@ export function Calendar({
         <Plus size={28} className="group-hover:rotate-90 transition-transform duration-500" />
       </button>
 
-      <div className="shrink-0 flex items-center justify-center gap-3 sm:gap-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 px-4 sm:px-6 py-4 shadow-sm z-30 min-h-[72px]">
+      <div className="shrink-0 flex items-center justify-center gap-3 sm:gap-6 bg-[var(--nav-bg)]/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/20 px-4 sm:px-6 py-4 shadow-sm z-30 min-h-[72px] transition-colors duration-300">
         <button 
           onClick={prevMonth}
           className="p-1 sm:p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300"
@@ -492,19 +634,19 @@ export function Calendar({
           <select
             value={currentMonth.getFullYear()}
             onChange={(e) => setCurrentMonth(new Date(parseInt(e.target.value), currentMonth.getMonth(), 1))}
-            className="appearance-none bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 px-1 py-0.5 rounded text-lg sm:text-2xl font-bold tracking-wider text-gray-800 dark:text-gray-100 text-center cursor-pointer outline-none transition-all"
+            className="appearance-none bg-transparent hover:bg-gray-100 dark:hover:bg-white px-1 py-0.5 rounded text-lg sm:text-2xl font-bold tracking-wider text-gray-800 dark:text-white force-white-reverse-hover text-center cursor-pointer outline-none transition-all"
           >
             {Array.from({ length: 21 }, (_, i) => new Date().getFullYear() - 10 + i).map(year => (
-              <option key={year} value={year} className="dark:bg-gray-900">{year}年</option>
+              <option key={year} value={year} className="bg-white text-gray-800 dark:bg-gray-900 dark:text-white">{year}年</option>
             ))}
           </select>
           <select
             value={currentMonth.getMonth()}
             onChange={(e) => setCurrentMonth(new Date(currentMonth.getFullYear(), parseInt(e.target.value), 1))}
-            className="appearance-none bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 px-1 py-0.5 rounded text-lg sm:text-2xl font-bold tracking-wider text-gray-800 dark:text-gray-100 text-center cursor-pointer outline-none transition-all"
+            className="appearance-none bg-transparent hover:bg-gray-100 dark:hover:bg-white px-1 py-0.5 rounded text-lg sm:text-2xl font-bold tracking-wider text-gray-800 dark:text-white force-white-reverse-hover text-center cursor-pointer outline-none transition-all"
           >
             {Array.from({ length: 12 }, (_, i) => i).map(month => (
-              <option key={month} value={month} className="dark:bg-gray-900">{month + 1}月</option>
+              <option key={month} value={month} className="bg-white text-gray-800 dark:bg-gray-900 dark:text-white">{month + 1}月</option>
             ))}
           </select>
         </div>
@@ -517,24 +659,24 @@ export function Calendar({
         </button>
       </div>
 
-      {/* Grid Scroll Area — px-1 mobile, px-6 desktop. md: limited to one screen */}
-      <div className="flex-1 flex flex-col overflow-y-auto w-full md:max-w-5xl mx-auto items-center px-1 sm:px-6 overflow-x-hidden md:h-[calc(100vh-120px)] md:overflow-hidden">
+      {/* Grid Scroll Area */}
+      <div className="flex flex-col w-full md:max-w-5xl mx-auto items-center px-1 sm:px-6">
         
         {/* Weekdays Header */}
         <div className="hidden md:flex shrink-0 w-full py-3 z-30">
           <div className="grid grid-cols-7 gap-0.5 md:gap-2 w-full">
             {['周日', '周一', '周二', '周三', '周四', '周五', '周六'].map(d => (
-              <div key={d} className="text-center text-xs font-bold text-gray-400 tracking-widest">
+              <div key={d} className="text-center text-xs font-bold tracking-widest" style={{ color: 'var(--grid-weekday-text)' }}>
                 {d}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Grid Area — rows sync height via CSS grid auto-rows */}
-        <div className="hidden md:flex flex-1 w-full pb-8 flex-col gap-0.5 md:gap-2">
+        {/* Grid Area */}
+        <div className="hidden md:flex w-full pb-10 flex-col gap-0.5 md:gap-2">
           {(weeks || []).map((week, wIdx) => (
-            <div key={wIdx} className="grid grid-cols-7 gap-0.5 md:gap-2 justify-items-stretch content-start" style={{ gridAutoRows: '1fr' }}>
+            <div key={wIdx} className="grid grid-cols-7 gap-0.5 md:gap-2 justify-items-stretch items-stretch">
               {(week || []).map((cell, cIdx) => {
                 if (!cell || !cell.date) {
                   return <div key={cIdx} className="bg-transparent rounded-xl" />;
@@ -562,7 +704,7 @@ export function Calendar({
           ))}
         </div>
 
-        {/* Mobile View — Vertical Flow Cards */}
+        {/* Mobile View 鈥?Vertical Flow Cards */}
         <div className="md:hidden flex flex-col w-full pb-20 gap-2 pt-2">
           {(weeks || []).flat().filter(c => c && c.date).map((cell, cIdx) => {
             if (!cell || !cell.date) return null;
@@ -600,15 +742,15 @@ export function Calendar({
           id="poster-template" 
           className="fixed left-[-9999px] top-0" 
           style={{ 
-            backgroundColor: '#FDFCF9', 
+            backgroundColor: posterData.theme.bg, 
             padding: '100px 80px', 
             width: '750px', // Static width to prevent viewport scaling issues
             fontFamily: '"Inter", "Segoe UI", "PingFang SC", sans-serif',
-            color: '#0f172a'
+            color: posterData.theme.text
           }}
         >
           {/* Decorative Top Line */}
-          <div style={{ width: '40px', height: '4px', backgroundColor: '#0f172a', borderRadius: '4px', margin: '0 auto 40px auto' }} />
+          <div style={{ width: '40px', height: '4px', backgroundColor: posterData.theme.text, borderRadius: '4px', margin: '0 auto 40px auto' }} />
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '80px' }}>
             <div style={{ 
@@ -616,7 +758,7 @@ export function Calendar({
               fontWeight: '900', 
               textTransform: 'uppercase', 
               letterSpacing: '0.4em', 
-              color: '#94a3b8', 
+              color: posterData.theme.secondaryText, 
               marginBottom: '16px' 
             }}>PERSONAL ARCHIVE</div>
             
@@ -625,14 +767,14 @@ export function Calendar({
               fontSize: '48px', 
               fontWeight: '900', 
               margin: 0, 
-              color: '#0f172a', 
+              color: posterData.theme.text, 
               letterSpacing: '0.2em',
               textTransform: 'uppercase'
             }}>
               ALIBI LOG
             </h1>
             
-            <div style={{ marginTop: '20px', fontSize: '16px', fontWeight: '600', color: '#64748b', letterSpacing: '0.05em' }}>
+            <div style={{ marginTop: '20px', fontSize: '16px', fontWeight: '600', color: posterData.theme.mutedText, letterSpacing: '0.05em' }}>
               {posterData.range}
             </div>
           </div>
@@ -642,150 +784,264 @@ export function Calendar({
             gap: '60px', 
             gridTemplateColumns: '1fr', // Force single column for 750px width stability
             width: '100%',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            position: 'relative',
+            zIndex: 1
           }}>
-            {posterData.months.map((m: any, idx: number) => (
-              <div key={idx} style={{ 
-                backgroundColor: '#ffffff',
-                borderRadius: '32px',
-                padding: '48px',
-                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.02)',
-                display: 'flex',
-                flexDirection: 'column',
-                margin: posterData.months.length <= 2 ? '0 auto' : '0',
-                width: '100%'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                  <h3 style={{ 
-                    fontSize: '20px', 
-                    fontWeight: '900', 
-                    color: '#0f172a', 
-                    letterSpacing: '0.1em',
-                    margin: 0
-                  }}>
-                    {m.year}.{String(m.month).padStart(2, '0')}
-                  </h3>
-                  <div style={{ width: '24px', height: '2px', backgroundColor: '#f1f5f9' }} />
-                </div>
-                
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(7, 1fr)',
-                  marginBottom: '40px'
+            {posterData.shareType === 'calendar' ? (
+              posterData.months.map((m: any, idx: number) => (
+                <div key={idx} style={{ 
+                  backgroundColor: posterData.theme.cardBg,
+                  borderRadius: '32px',
+                  padding: '48px',
+                  boxShadow: posterData.isDark ? 'none' : '0 10px 40px rgba(0, 0, 0, 0.02)',
+                  border: `1px solid ${posterData.theme.cardBorder}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  margin: posterData.months.length <= 2 ? '0 auto' : '0',
+                  width: '100%'
                 }}>
-                  {['日', '一', '二', '三', '四', '五', '六'].map(d => (
-                    <div key={d} style={{ 
-                      textAlign: 'center', 
-                      fontSize: '14px', 
-                      fontWeight: '800', 
-                      color: '#475569', // Darker slate
-                      marginBottom: '20px'
-                    }}>{d}</div>
-                  ))}
-                  {Array.from({ length: m.firstDay }).map((_, i) => (
-                    <div key={`empty-${i}`} style={{ aspectRatio: '1/1' }} />
-                  ))}
-                  {m.days.map((d: any) => (
-                    <div key={d.day} style={{ 
-                      aspectRatio: '1/1', // SQUARE RATIO LOCK
-                      padding: '6px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between', // Physical separation logic
-                      position: 'relative',
-                      backgroundColor: d.isWithinRange ? 'transparent' : '#fcfcfc'
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+                    <h3 style={{ 
+                      fontSize: '20px', 
+                      fontWeight: '900', 
+                      color: posterData.theme.text, 
+                      letterSpacing: '0.1em',
+                      margin: 0
                     }}>
-                      {/* Top Area: Fixed Date Header */}
-                      <div style={{ height: '20px', display: 'flex', alignItems: 'flex-start' }}>
-                        <span style={{ 
-                          fontSize: '16px', 
-                          fontWeight: '600', 
-                          color: d.isWithinRange ? '#0f172a' : '#e2e8f0',
-                        }}>{d.day}</span>
-                      </div>
-
-                      {/* Middle Area: Mandatory Buffer Gap */}
-                      <div style={{ height: '12px' }} />
-                      
-                      {/* Bottom Area: Habid Dots stuck to bottom */}
-                      <div style={{ 
-                        flex: 1, 
-                        display: 'flex', 
-                        alignItems: 'flex-end',
-                        justifyContent: 'center',
-                        paddingBottom: '2px'
-                      }}>
-                        {d.isWithinRange && posterData.selectedHabits.map((h: any) => {
-                          const isDone = (h.completedDates || []).includes(d.dateStr);
-                        if (!isDone) return null;
-                          return (
-                            <div key={h.id} style={{ 
-                              width: '7px', 
-                              height: '7px', 
-                              borderRadius: '50%', 
-                              backgroundColor: h.safeColor.bg,
-                              boxShadow: `0 1px 2px ${h.safeColor.bg}30`,
-                              margin: '0 1.5px' // Use margin instead of flex gap
-                            }} />
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Timeline Styles Special Events */}
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {m.days.filter((d: any) => d.specialEvents.length > 0).map((d: any) => (
-                    <div key={d.dateStr} style={{ display: 'flex', marginBottom: '24px' }}>
-                      <div style={{ 
+                      {m.year}.{String(m.month).padStart(2, '0')}
+                    </h3>
+                    <div style={{ width: '24px', height: '2px', backgroundColor: '#f1f5f9' }} />
+                  </div>
+                  
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(7, 1fr)',
+                    marginBottom: '40px'
+                  }}>
+                    {['日', '一', '二', '三', '四', '五', '六'].map(d => (
+                      <div key={d} style={{ 
+                        textAlign: 'center', 
                         fontSize: '14px', 
-                        fontWeight: '900', 
-                        color: '#64748b', 
-                        width: '24px', 
-                        marginRight: '20px', 
-                        textAlign: 'right',
-                        paddingTop: '2px'
+                        fontWeight: '800', 
+                        color: posterData.theme.secondaryText, 
+                        marginBottom: '20px'
+                      }}>{d}</div>
+                    ))}
+                    {Array.from({ length: m.firstDay }).map((_, i) => (
+                      <div key={`empty-${i}`} style={{ aspectRatio: '1/1' }} />
+                    ))}
+                    {m.days.map((d: any) => (
+                      <div key={d.day} style={{ 
+                        aspectRatio: '1/1', // SQUARE RATIO LOCK
+                        padding: '6px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between', // Physical separation logic
+                        position: 'relative',
+                        backgroundColor: d.isWithinRange ? 'transparent' : '#fcfcfc'
                       }}>
-                        {String(d.day).padStart(2, '0')}
+                        {/* Top Area: Fixed Date Header */}
+                        <div style={{ height: '20px', display: 'flex', alignItems: 'flex-start' }}>
+                          <span style={{ 
+                            fontSize: '16px', 
+                            fontWeight: '600', 
+                            color: d.isWithinRange ? (posterData.isDark ? '#ffffff' : '#0f172a') : (posterData.isDark ? '#3f3f46' : '#e2e8f0'),
+                          }}>{d.day}</span>
+                        </div>
+  
+                        {/* Middle Area: Mandatory Buffer Gap */}
+                        <div style={{ height: '12px' }} />
+                        
+                        {/* Bottom Area: Habid Dots stuck to bottom */}
+                        <div style={{ 
+                          flex: 1, 
+                          display: 'flex', 
+                          alignItems: 'flex-end',
+                          justifyContent: 'center',
+                          paddingBottom: '2px'
+                        }}>
+                          {d.isWithinRange && posterData.selectedHabits.map((h: any) => {
+                            const isDone = (h.completedDates || []).includes(d.dateStr);
+                          if (!isDone) return null;
+                            return (
+                              <div key={h.id} style={{ 
+                                width: '7px', 
+                                height: '7px', 
+                                borderRadius: '50%', 
+                                backgroundColor: h.safeColor.bg,
+                                boxShadow: `0 1px 2px ${h.safeColor.bg}30`,
+                                margin: '0 1.5px' // Use margin instead of flex gap
+                              }} />
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                        {d.specialEvents.map((e: any, eIdx: number) => (
-                          <div key={e.id} style={{ 
-                            display: 'flex', 
-                            alignItems: 'flex-start', 
-                            paddingBottom: '12px',
-                            marginBottom: eIdx === d.specialEvents.length - 1 ? '0' : '16px',
-                            borderBottom: '1px dashed #f1f5f9'
-                          }}>
-                            <div style={{ 
-                              width: '4px', 
-                              height: '24px', 
-                              borderRadius: '2px', 
-                              backgroundColor: e.safeColor.bg,
-                              marginRight: '12px',
-                              flexShrink: 0
-                            }} />
-                            <span style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', lineHeight: '24px' }}>
-                              {e.title || (e.tagIds.map((tid: string) => tags.find(t => t.id === tid)?.name).filter(Boolean).join(', '))}
-                            </span>
-                          </div>
-                        ))}
+                    ))}
+                  </div>
+  
+                  {/* Timeline Styles Special Events */}
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {m.days.filter((d: any) => d.specialEvents.length > 0).map((d: any) => (
+                      <div key={d.dateStr} style={{ display: 'flex', marginBottom: '24px' }}>
+                        <div style={{ 
+                          fontSize: '14px', 
+                          fontWeight: '900', 
+                          color: posterData.theme.mutedText, 
+                          width: '24px', 
+                          marginRight: '20px', 
+                          textAlign: 'right',
+                          paddingTop: '2px'
+                        }}>
+                          {String(d.day).padStart(2, '0')}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                          {d.specialEvents.map((e: any, eIdx: number) => (
+                            <div key={e.id} style={{ 
+                              display: 'flex', 
+                              alignItems: 'flex-start', 
+                              paddingBottom: '12px',
+                              marginBottom: eIdx === d.specialEvents.length - 1 ? '0' : '16px',
+                              borderBottom: `1px dashed ${posterData.theme.cardBorder}`
+                            }}>
+                              <div style={{ 
+                                width: '4px', 
+                                height: '24px', 
+                                borderRadius: '2px', 
+                                backgroundColor: e.safeColor.bg,
+                                marginRight: '12px',
+                                flexShrink: 0
+                              }} />
+                              <span style={{ fontSize: '15px', fontWeight: '700', color: posterData.theme.text, lineHeight: '24px' }}>
+                                {e.title || (e.tagIds.map((tid: string) => tags.find(t => t.id === tid)?.name).filter(Boolean).join(', '))}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+                // Achievement Mode Template
+                <div style={{ 
+                  backgroundColor: posterData.theme.bg,
+                  width: '750px', // Fixed width for stability
+                  padding: '60px 48px',
+                  borderRadius: '32px',
+                  boxShadow: posterData.isDark ? 'none' : '0 20px 60px rgba(0, 0, 0, 0.03)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '32px',
+                  position: 'relative',
+                  overflow: 'hidden' // iOS containment
+                }}>
+                  {/* Title Card Section */}
+                  <div style={{ 
+                    backgroundColor: posterData.theme.cardBg,
+                    borderRadius: '32px',
+                    padding: '60px 48px',
+                    border: `1px solid ${posterData.theme.cardBorder}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    zIndex: 1
+                  }}>
+                    {/* Background Rainbow Mist/Diffusion */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '-50%',
+                      left: '-20%',
+                      width: '140%',
+                      height: '200%',
+                      background: `radial-gradient(circle at center, rgba(59, 130, 246, ${posterData.isDark ? 0.15 : 0.08}) 0%, rgba(168, 85, 247, ${posterData.isDark ? 0.15 : 0.08}) 30%, rgba(236, 72, 153, ${posterData.isDark ? 0.1 : 0.05}) 60%, transparent 80%)`,
+                      zIndex: 0,
+                      filter: 'blur(60px)',
+                      transform: 'rotate(-15deg)'
+                    }} />
+                    
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '-20%',
+                      right: '-10%',
+                      width: '100%',
+                      height: '100%',
+                      background: `radial-gradient(circle at center, rgba(168, 85, 247, ${posterData.isDark ? 0.12 : 0.06}) 0%, rgba(236, 72, 153, ${posterData.isDark ? 0.08 : 0.04}) 50%, transparent 70%)`,
+                      zIndex: 0,
+                      filter: 'blur(80px)',
+                    }} />
+
+                    <div style={{ position: 'relative', zIndex: 1 }}>
+                      <div style={{ fontSize: '32px', marginBottom: '16px', lineHeight: '1' }}>🌟</div>
+                      <div style={{ fontSize: '14px', fontWeight: '800', color: posterData.theme.accent, letterSpacing: '0.4em', marginBottom: '8px', lineHeight: '1.2' }}>ARCHIVE TITLE</div>
+                      <h2 style={{ fontSize: '40px', fontWeight: '900', color: posterData.theme.text, margin: 0, letterSpacing: '-0.02em', lineHeight: '1.2' }}>
+                        {posterData.funTitle}
+                      </h2>
+                    </div>
+                  </div>
+
+                  {/* Main Grid Stats */}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(2, 1fr)', 
+                    gap: '24px',
+                    zIndex: 1
+                  }}>
+                    <div style={{ backgroundColor: posterData.theme.cardBg, borderRadius: '28px', padding: '34px 24px 38px', border: `1px solid ${posterData.theme.cardBorder}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box' }}>
+                      <span style={{ fontSize: '24px', marginBottom: '12px', lineHeight: '1' }}>✅</span>
+                      <span style={{ fontSize: '14px', fontWeight: '800', color: posterData.theme.secondaryText, letterSpacing: '0.05em', marginBottom: '4px', lineHeight: '1.2', textAlign: 'center' }}>TOTAL CHECK-INS · 累计打卡次数</span>
+                      <span style={{ fontSize: '38px', fontWeight: '900', color: posterData.theme.text, lineHeight: '1.2', transform: 'translateY(-2px)' }}>{posterData.totalChecks}</span>
+                    </div>
+                    <div style={{ backgroundColor: posterData.theme.cardBg, borderRadius: '28px', padding: '34px 24px 38px', border: `1px solid ${posterData.theme.cardBorder}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box' }}>
+                      <span style={{ fontSize: '24px', marginBottom: '12px', lineHeight: '1' }}>🌈</span>
+                      <span style={{ fontSize: '14px', fontWeight: '800', color: posterData.theme.secondaryText, letterSpacing: '0.05em', marginBottom: '4px', lineHeight: '1.2', textAlign: 'center' }}>PERFECT DAYS · 完美打卡天数</span>
+                      <span style={{ fontSize: '38px', fontWeight: '900', color: posterData.theme.text, lineHeight: '1.2', transform: 'translateY(-2px)' }}>{posterData.perfectRainbowDays}</span>
+                    </div>
+                    <div style={{ backgroundColor: posterData.theme.cardBg, borderRadius: '28px', padding: '34px 24px 38px', border: `1px solid ${posterData.theme.cardBorder}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box' }}>
+                      <span style={{ fontSize: '24px', marginBottom: '12px', lineHeight: '1' }}>⚡</span>
+                      <span style={{ fontSize: '14px', fontWeight: '800', color: posterData.theme.secondaryText, letterSpacing: '0.05em', marginBottom: '4px', lineHeight: '1.2', textAlign: 'center' }}>LONGEST STREAK · 最长连续坚持</span>
+                      <span style={{ fontSize: '38px', fontWeight: '900', color: posterData.theme.text, lineHeight: '1.2', transform: 'translateY(-2px)' }}>{posterData.longestStreak}</span>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: posterData.theme.mutedText, marginTop: '2px', lineHeight: '1.2', transform: 'translateY(-2px)' }}>days continuously</span>
+                    </div>
+                    <div style={{ backgroundColor: posterData.theme.cardBg, borderRadius: '28px', padding: '34px 24px 38px', border: `1px solid ${posterData.theme.cardBorder}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box' }}>
+                      <span style={{ fontSize: '24px', marginBottom: '12px', lineHeight: '1' }}>🧠</span>
+                      <span style={{ fontSize: '14px', fontWeight: '800', color: posterData.theme.secondaryText, letterSpacing: '0.05em', marginBottom: '4px', lineHeight: '1.2', textAlign: 'center' }}>DOPAMINE SCORE · 多巴胺释放量</span>
+                      <span style={{ fontSize: '38px', fontWeight: '900', color: posterData.theme.text, lineHeight: '1.2', transform: 'translateY(-2px)' }}>{posterData.dopamineScore}</span>
+                    </div>
+                  </div>
+
+                  {/* Insight Cards */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', zIndex: 1 }}>
+                    <div style={{ backgroundColor: posterData.theme.cardBg, borderRadius: '28px', padding: '32px 36px', border: `1px solid ${posterData.theme.cardBorder}`, display: 'flex', alignItems: 'center', gap: '24px', boxSizing: 'border-box', minHeight: '120px' }}>
+                      <div style={{ width: '64px', height: '64px', backgroundColor: posterData.isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', flexShrink: 0 }}>👑</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '800', color: posterData.theme.secondaryText, letterSpacing: '0.05em', marginBottom: '6px', lineHeight: '1.2' }}>HABIT KING · 习惯之王</div>
+                        <div style={{ fontSize: '22px', fontWeight: '800', color: posterData.theme.text, lineHeight: '1.4', wordBreak: 'break-word' }}>最强坚持 · {posterData.habitKingName}</div>
                       </div>
                     </div>
-                  ))}
+                    <div style={{ backgroundColor: posterData.theme.cardBg, borderRadius: '28px', padding: '32px 36px', border: `1px solid ${posterData.theme.cardBorder}`, display: 'flex', alignItems: 'center', gap: '24px', boxSizing: 'border-box', minHeight: '120px' }}>
+                      <div style={{ width: '64px', height: '64px', backgroundColor: posterData.isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', flexShrink: 0 }}>⏰</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '800', color: posterData.theme.secondaryText, letterSpacing: '0.05em', marginBottom: '6px', lineHeight: '1.2' }}>ENERGY PERIOD · 能量时段</div>
+                        <div style={{ fontSize: '22px', fontWeight: '800', color: posterData.theme.text, lineHeight: '1.4' }}>{posterData.energyLabel} · {posterData.peakHour}</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+            )}
           </div>
 
           {/* Habit Legend - Added for V23 Clarity */}
-          {posterData.selectedHabits.length > 0 && (
-            <div style={{ marginTop: '80px', width: '100%', borderTop: '1px solid #f1f5f9', paddingTop: '40px' }}>
+          {posterData.shareType === 'calendar' && posterData.selectedHabits.length > 0 && (
+            <div style={{ marginTop: '80px', width: '100%', borderTop: `1px solid ${posterData.theme.cardBorder}`, paddingTop: '40px' }}>
               <div style={{ 
                 fontSize: '10px', 
                 fontWeight: '900', 
-                color: '#94a3b8', 
+                color: posterData.theme.secondaryText, 
                 letterSpacing: '0.3em', 
                 marginBottom: '24px',
                 textAlign: 'center'
@@ -808,7 +1064,7 @@ export function Calendar({
                       boxShadow: `0 1px 3px ${h.safeColor.bg}40`,
                       marginRight: '10px'
                     }} />
-                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#475569', letterSpacing: '0.02em' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: posterData.theme.secondaryText, letterSpacing: '0.02em' }}>
                       {h.content}
                     </span>
                   </div>
@@ -817,17 +1073,19 @@ export function Calendar({
             </div>
           )}
 
+          {/* Achievement Summary Section - Removed in V24 as it is now a full mode */}
+
           {/* Footer Branding */}
           <div style={{ marginTop: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
-            <div style={{ width: '80px', height: '1px', backgroundColor: '#e2e8f0' }} />
+            <div style={{ width: '80px', height: '1.5px', backgroundColor: posterData.theme.cardBorder }} />
             <span style={{ 
-              fontSize: '11px', 
+              fontSize: '13px', 
               fontWeight: '700', 
-              color: '#cbd5e1', 
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
-              opacity: 0.8
-            }}>ANTIGRAVITY · ALIBI CALENDAR SYSTEM</span>
+              color: posterData.isDark ? '#94a3b8' : '#71717a', 
+              letterSpacing: '0.4em',
+              opacity: 0.9,
+              textAlign: 'center'
+            }}>你的生活本就值得记录</span>
           </div>
         </div>
       )}

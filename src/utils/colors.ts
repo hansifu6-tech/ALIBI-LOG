@@ -33,6 +33,7 @@ export const presetColors = generateColors();
 
 // Helper to ensure a color string is safe for html2canvas
 export const getSafeColor = (colorStr: string): string => {
+  if (!colorStr) return '#000000';
   if (colorStr.startsWith('#')) return colorStr;
   if (colorStr.startsWith('hsl')) {
     const match = colorStr.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
@@ -41,4 +42,20 @@ export const getSafeColor = (colorStr: string): string => {
     }
   }
   return colorStr; // Fallback
+};
+
+/**
+ * Specialized helper for Poster rendering: makes colors deeper and more "sturdy"
+ * by slightly reducing brightness and saturation from the very-light defaults.
+ */
+export const getPosterSafeColor = (colorStr: string): string => {
+  if (!colorStr || !colorStr.startsWith('hsl')) return getSafeColor(colorStr);
+  const match = colorStr.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+  if (match) {
+    const h = Number(match[1]);
+    const s = Math.max(0, Number(match[2]) - 10);
+    const l = Math.max(0, Number(match[3]) - 12);
+    return hslToHex(h, s, l);
+  }
+  return getSafeColor(colorStr);
 };
