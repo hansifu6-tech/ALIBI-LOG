@@ -25,6 +25,8 @@ interface RecordModalProps {
   hideAllSpecialEvents: boolean;
   setHideAllSpecialEvents: React.Dispatch<React.SetStateAction<boolean>>;
   onPreviewImage: (url: string) => void;
+  showRainbowBorder: boolean;
+  setShowRainbowBorder: (show: boolean) => void;
 }
 
 const WEEKDAYS = [
@@ -54,7 +56,9 @@ export function RecordModal({
   setFilterTagIds,
   hideAllSpecialEvents,
   setHideAllSpecialEvents,
-  onPreviewImage
+  onPreviewImage,
+  showRainbowBorder,
+  setShowRainbowBorder
 }: RecordModalProps) {
   const [activeTab, setActiveTab] = useState<'daily' | 'special'>('daily');
 
@@ -373,8 +377,19 @@ export function RecordModal({
 
               {/* Part 2: Manage list (Advanced Inline Editing) */}
               <div className="flex flex-col min-h-0">
-                <div className="sticky top-[-24px] z-20 bg-white dark:bg-gray-800 py-4 mb-2">
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">现有习惯管理</h3>
+                <div className="sticky top-[-24px] z-20 bg-white dark:bg-gray-800 py-4 mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest text-[10px] md:text-sm">现有习惯管理</h3>
+                  
+                  {/* Rainbow Toggle Switch */}
+                  <div className="flex items-center gap-2 pr-1">
+                    <span className="text-[10px] md:text-xs text-gray-400 font-medium">开启打卡视觉奖励</span>
+                    <button
+                      onClick={() => setShowRainbowBorder(!showRainbowBorder)}
+                      className={`relative w-8 h-4.5 rounded-full transition-colors duration-200 outline-none ${showRainbowBorder ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                    >
+                      <div className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-200 ${showRainbowBorder ? 'translate-x-3.5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-4">
                   {safeRecords.filter(r => r.type === 'daily').map(record => {

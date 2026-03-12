@@ -71,6 +71,16 @@ function App() {
   const [filterTagIds, setFilterTagIds]       = useState<string[]>([]);
   const [hideAllSpecialEvents, setHideAllSpecialEvents] = useState(false);
   const [previewImage, setPreviewImage]       = useState<string | null>(null);
+  
+  // -- Rainbow Border Toggle --
+  const [showRainbowBorder, setShowRainbowBorder] = useState<boolean>(() => {
+    const saved = localStorage.getItem('alibi_show_rainbow_border');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('alibi_show_rainbow_border', showRainbowBorder.toString());
+  }, [showRainbowBorder]);
 
   const handleOpenModal = (date: Date | null, recordToEdit?: { record: CalendarRecord; dateStr: string }) => {
     setSelectedDate(date);
@@ -187,6 +197,7 @@ function App() {
             hideAllSpecialEvents={hideAllSpecialEvents}
             isShareModalOpen={isShareModalOpen}
             onCloseShareModal={() => setIsShareModalOpen(false)}
+            showRainbowBorder={showRainbowBorder}
           />
         ) : (
           <TimelineView
@@ -219,6 +230,8 @@ function App() {
         hideAllSpecialEvents={hideAllSpecialEvents}
         setHideAllSpecialEvents={setHideAllSpecialEvents}
         onPreviewImage={setPreviewImage}
+        showRainbowBorder={showRainbowBorder}
+        setShowRainbowBorder={setShowRainbowBorder}
       />
 
       {previewImage && (

@@ -15,6 +15,7 @@ interface CalendarProps {
   hideAllSpecialEvents: boolean;
   isShareModalOpen?: boolean;
   onCloseShareModal?: () => void;
+  showRainbowBorder: boolean;
 }
 
 export function Calendar({ 
@@ -25,7 +26,8 @@ export function Calendar({
   filterTagIds,
   hideAllSpecialEvents,
   isShareModalOpen = false,
-  onCloseShareModal = () => {}
+  onCloseShareModal = () => {},
+  showRainbowBorder
 }: CalendarProps) {
   const { currentMonth, weeks, setCurrentMonth, prevMonth, nextMonth } = useCalendarData();
 
@@ -340,10 +342,10 @@ export function Calendar({
                     style={{ '--rainbow-progress': `${progress}%` } as React.CSSProperties}
                     className={`group relative rounded-xl flex flex-col transition-all duration-200 ease-out cursor-pointer overflow-hidden
                       min-h-[96px] md:min-h-0 md:aspect-square
-                      ${progress > 0 
+                      ${progress > 0 && showRainbowBorder
                         ? 'rainbow-card border-transparent p-1' 
                         : 'border border-gray-200/60 dark:border-gray-800'}
-                      ${isCompletedAll ? 'rainbow-card-complete' : ''}
+                      ${isCompletedAll && showRainbowBorder ? 'rainbow-card-complete' : ''}
                       ${cell.isToday && progress === 0
                         ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-sm' 
                         : (progress === 0 ? 'bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/50' : 'bg-white dark:bg-gray-900')}
@@ -467,8 +469,8 @@ export function Calendar({
                 onClick={() => onOpenModal(cell.date)}
                 style={{ '--rainbow-progress': `${progress}%` } as React.CSSProperties}
                 className={`flex w-full h-28 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-gray-900 active:scale-[0.98] transition-all duration-200 
-                  ${progress > 0 ? 'rainbow-card border-transparent p-1' : 'border border-gray-100 dark:border-gray-800'} 
-                  ${isCompletedAll ? 'rainbow-card-complete' : ''}
+                  ${progress > 0 && showRainbowBorder ? 'rainbow-card border-transparent p-1' : 'border border-gray-100 dark:border-gray-800'} 
+                  ${isCompletedAll && showRainbowBorder ? 'rainbow-card-complete' : ''}
                 `}
               >
                 {/* Left Date Region (Compact) */}
