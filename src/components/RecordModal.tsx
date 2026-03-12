@@ -66,6 +66,8 @@ export function RecordModal({
   const [dailyContent, setDailyContent] = useState('');
   const [selectedColor, setSelectedColor] = useState<CalendarColor>(defaultColor);
   const [repeatDays, setRepeatDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const [habitStartDate, setHabitStartDate] = useState('');
+  const [habitEndDate, setHabitEndDate] = useState('');
 
   // Special Record State
   const [specialTitle, setSpecialTitle] = useState('');
@@ -95,6 +97,8 @@ export function RecordModal({
   const [editHabitName, setEditHabitName] = useState('');
   const [editHabitDays, setEditHabitDays] = useState<number[]>([]);
   const [editHabitColor, setEditHabitColor] = useState<CalendarColor>(defaultColor);
+  const [editHabitStartDate, setEditHabitStartDate] = useState('');
+  const [editHabitEndDate, setEditHabitEndDate] = useState('');
 
   // Defensive arrays
   const safeTags = tags || [];
@@ -110,6 +114,8 @@ export function RecordModal({
           setDailyContent(rec.content || '');
           setSelectedColor(rec.color || defaultColor);
           setRepeatDays(rec.repeatDays || [0, 1, 2, 3, 4, 5, 6]);
+          setHabitStartDate(rec.startDate || '');
+          setHabitEndDate(rec.endDate || '');
         } else {
           setActiveTab('special');
           const spec = rec as SpecialRecord;
@@ -129,6 +135,8 @@ export function RecordModal({
         setDailyContent('');
         setSelectedColor(defaultColor);
         setRepeatDays([0, 1, 2, 3, 4, 5, 6]);
+        setHabitStartDate('');
+        setHabitEndDate('');
 
         setSpecialTitle('');
         setDateError('');
@@ -173,8 +181,12 @@ export function RecordModal({
       color: selectedColor,
       completedDates: [],
       repeatDays: repeatDays,
+      startDate: habitStartDate || undefined,
+      endDate: habitEndDate || undefined,
     });
     setDailyContent('');
+    setHabitStartDate('');
+    setHabitEndDate('');
     onClose();
   };
 
@@ -278,11 +290,11 @@ export function RecordModal({
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-y-auto flex flex-col scrollbar-v px-6 py-6 space-y-8">
           {activeTab === 'daily' ? (
-            <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col space-y-8">
               {/* Part 1: New Habit form (Refined) */}
-              <div className="p-6 pb-4 space-y-5 shrink-0">
+              <div className="space-y-6">
                 <div className="space-y-3">
                   <label className="text-sm font-bold text-gray-700 dark:text-gray-300">🚀 新建习惯</label>
                   <div className="flex gap-2">
@@ -321,6 +333,30 @@ export function RecordModal({
                 </div>
 
                 <div className="space-y-3">
+                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300">📅 有效周期 (可选)</label>
+                  <div className="flex gap-3">
+                    <div className="flex-1 space-y-1">
+                      <span className="text-[10px] text-gray-400 font-bold uppercase pl-1">开始日期</span>
+                      <input
+                        type="date"
+                        value={habitStartDate}
+                        onChange={(e) => setHabitStartDate(e.target.value)}
+                        className="w-full p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <span className="text-[10px] text-gray-400 font-bold uppercase pl-1">结束日期</span>
+                      <input
+                        type="date"
+                        value={habitEndDate}
+                        onChange={(e) => setHabitEndDate(e.target.value)}
+                        className="w-full p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
                   <label className="text-sm font-bold text-gray-700 dark:text-gray-300">🎨 主题色库</label>
                   <div className="grid grid-cols-12 gap-1.5 px-1 pt-3 h-auto overflow-x-hidden">
                     {defaultColors.map((color, i) => (
@@ -335,12 +371,12 @@ export function RecordModal({
                 </div>
               </div>
 
-              <div className="h-px bg-gray-100 dark:bg-gray-700/50 mx-6" />
-
               {/* Part 2: Manage list (Advanced Inline Editing) */}
-              <div className="flex-1 overflow-hidden p-6 pt-4 flex flex-col min-h-0">
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">现有习惯管理</h3>
-                <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-v" style={{ maxHeight: '200px' }}>
+              <div className="flex flex-col min-h-0">
+                <div className="sticky top-[-24px] z-20 bg-white dark:bg-gray-800 py-4 mb-2">
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">现有习惯管理</h3>
+                </div>
+                <div className="space-y-4">
                   {safeRecords.filter(r => r.type === 'daily').map(record => {
                     const habit = record as DailyRecord;
                     const isEditing = editingHabitId === habit.id;
@@ -379,6 +415,24 @@ export function RecordModal({
                           </div>
 
                           <div className="space-y-2">
+                             <label className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">有效周期</label>
+                             <div className="flex gap-2">
+                               <input
+                                 type="date"
+                                 value={editHabitStartDate}
+                                 onChange={(e) => setEditHabitStartDate(e.target.value)}
+                                 className="flex-1 p-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg text-[11px] outline-none"
+                               />
+                               <input
+                                 type="date"
+                                 value={editHabitEndDate}
+                                 onChange={(e) => setEditHabitEndDate(e.target.value)}
+                                 className="flex-1 p-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg text-[11px] outline-none"
+                               />
+                             </div>
+                          </div>
+
+                          <div className="space-y-2">
                             <label className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">更换主题色</label>
                             <div className="flex flex-wrap gap-1.5 w-full bg-white/50 dark:bg-black/20 p-2 rounded-xl">
                               {defaultColors.map((color, i) => (
@@ -405,7 +459,9 @@ export function RecordModal({
                                   handleUpdateHabitInline(habit, {
                                     content: editHabitName.trim(),
                                     repeatDays: editHabitDays.length > 0 ? editHabitDays : [0, 1, 2, 3, 4, 5, 6],
-                                    color: editHabitColor
+                                    color: editHabitColor,
+                                    startDate: editHabitStartDate || undefined,
+                                    endDate: editHabitEndDate || undefined
                                   });
                                   setEditingHabitId(null);
                                 }
@@ -431,6 +487,8 @@ export function RecordModal({
                                 setEditHabitName(habit.content);
                                 setEditHabitDays(habit.repeatDays || []);
                                 setEditHabitColor(habit.color || defaultColor);
+                                setEditHabitStartDate(habit.startDate || '');
+                                setEditHabitEndDate(habit.endDate || '');
                               }}
                             >
                               {habit.content}
@@ -443,6 +501,8 @@ export function RecordModal({
                                 setEditHabitName(habit.content);
                                 setEditHabitDays(habit.repeatDays || []);
                                 setEditHabitColor(habit.color || defaultColor);
+                                setEditHabitStartDate(habit.startDate || '');
+                                setEditHabitEndDate(habit.endDate || '');
                               }}
                               className="p-2 text-gray-400 hover:text-blue-500 rounded-lg transition-all"
                               title="编辑"
@@ -484,7 +544,7 @@ export function RecordModal({
               </div>
             </div>
           ) : (
-            <div className="p-6 space-y-6 overflow-y-auto flex-1 transition-all duration-300">
+            <div className="space-y-8">
               {/* Event Form */}
               <div className="space-y-5 border-b border-gray-100 dark:border-gray-700/50 pb-6">
                 <div className="space-y-3">
@@ -676,9 +736,6 @@ export function RecordModal({
                   </div>
                 )}
               </div>
-
-              {/* Divider between individual action and global display settings */}
-              <div className="h-px bg-gray-100 dark:bg-gray-700/50" />
 
               {/* Display Settings Section (Global View Control) */}
               <div id="display-settings" className="space-y-5 py-2">

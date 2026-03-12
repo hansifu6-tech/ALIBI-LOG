@@ -298,9 +298,16 @@ export function Calendar({
                 
                 const allRecords = records || [];
                 
-                // Habit filtering logic: Show if it's a repeat day OR if it's already completed
+                // Habit filtering logic: Show if it's within date range AND (it's a repeat day OR already completed)
                 const dailyRecords = allRecords.filter(r => {
                   if (!r || r.type !== 'daily') return false;
+                  
+                  // 1. Date range constraint
+                  const isWithinRange = (!r.startDate || dateStr >= r.startDate) && 
+                                        (!r.endDate || dateStr <= r.endDate);
+                  if (!isWithinRange) return false;
+
+                  // 2. Repeat day or completed check
                   const isRepeatDay = !r.repeatDays || r.repeatDays.includes(dayOfWeek);
                   const isCompleted = (r.completedDates || []).includes(dateStr);
                   return isRepeatDay || isCompleted;
@@ -411,6 +418,13 @@ export function Calendar({
             
             const dailyRecords = allRecords.filter(r => {
               if (!r || r.type !== 'daily') return false;
+              
+              // 1. Date range constraint
+              const isWithinRange = (!r.startDate || dateStr >= r.startDate) && 
+                                    (!r.endDate || dateStr <= r.endDate);
+              if (!isWithinRange) return false;
+
+              // 2. Repeat day or completed check
               const isRepeatDay = !r.repeatDays || r.repeatDays.includes(dayOfWeek);
               const isCompleted = (r.completedDates || []).includes(dateStr);
               return isRepeatDay || isCompleted;

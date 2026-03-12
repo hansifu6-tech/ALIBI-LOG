@@ -56,13 +56,23 @@ function decodeColor(raw: any): { bg: string; text: string } {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function aggregateDailyRows(rows: any[]): DailyRecord[] {
   // Group by content (habit name)
-  const map = new Map<string, { id: string; color: { bg: string; text: string }; createdAt: number; dates: string[]; repeatDays: number[] }>();
+  const map = new Map<string, { 
+    id: string; 
+    color: { bg: string; text: string }; 
+    createdAt: number; 
+    dates: string[]; 
+    repeatDays: number[];
+    startDate?: string;
+    endDate?: string;
+  }>();
 
   for (const row of rows) {
     const content = row.content ?? '';
     const color = decodeColor(row.color);
     const createdAt = row.created_at ? new Date(row.created_at).getTime() : Date.now();
     const moodIsDate = typeof row.mood === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(row.mood);
+    const rowStartDate = row.start_date;
+    const rowEndDate = row.end_date;
     
     // repeatDays stored in 'tags' column of the definition row (mood is null)
     let rowRepeatDays: number[] | null = null;
@@ -73,14 +83,24 @@ function aggregateDailyRows(rows: any[]): DailyRecord[] {
     }
 
     if (!map.has(content)) {
-      map.set(content, { id: String(row.id), color, createdAt, dates: [], repeatDays: [0, 1, 2, 3, 4, 5, 6] });
+      map.set(content, { 
+        id: String(row.id), 
+        color, 
+        createdAt, 
+        dates: [], 
+        repeatDays: [0, 1, 2, 3, 4, 5, 6],
+        startDate: rowStartDate,
+        endDate: rowEndDate
+      });
     }
     
     const entry = map.get(content)!;
     
-    // If it's the definition row, capture the canonical ID and custom repeatDays
+    // If it's the definition row, capture the canonical ID, repeatDays, and range
     if (!moodIsDate) {
       entry.id = String(row.id);
+      if (rowStartDate) entry.startDate = rowStartDate;
+      if (rowEndDate) entry.endDate = rowEndDate;
     }
     if (rowRepeatDays) entry.repeatDays = rowRepeatDays;
     
@@ -88,7 +108,7 @@ function aggregateDailyRows(rows: any[]): DailyRecord[] {
     if (moodIsDate) entry.dates.push(row.mood);
   }
 
-  return Array.from(map.entries()).map(([content, { id, color, createdAt, dates, repeatDays }]) => ({
+  return Array.from(map.entries()).map(([content, { id, color, createdAt, dates, repeatDays, startDate, endDate }]) => ({
     id,
     createdAt,
     type: 'daily',
@@ -96,6 +116,8 @@ function aggregateDailyRows(rows: any[]): DailyRecord[] {
     color,
     completedDates: dates,
     repeatDays,
+    startDate,
+    endDate,
   }));
 }
 
@@ -274,6 +296,8 @@ export const useSupabaseData = (userId: string | null | undefined) => {
         image_url: null,
         mood: null, // null → habit definition row
         tags: record.repeatDays || [0, 1, 2, 3, 4, 5, 6],
+        start_date: record.startDate || null,
+        end_date: record.endDate || null,
       };
     } else {
       row = {
@@ -407,11 +431,13 @@ export const useSupabaseData = (userId: string | null | undefined) => {
        // Bulk update ALL records for this habit (Consistency Fix)
        const { error: bulkErr } = await supabase
          .from('records')
-         .update({ 
-           content: newContent, 
-           color: encodeColor(record.color),
-           tags: newRepeatDays 
-         })
+          .update({ 
+            content: newContent, 
+            color: encodeColor(record.color),
+            tags: newRepeatDays,
+            start_date: record.startDate || null,
+            end_date: record.endDate || null
+          })
          .eq('user_id', userId)
          .eq('type', 'daily')
          .eq('content', oldContent);
@@ -453,6 +479,8 @@ export const useSupabaseData = (userId: string | null | undefined) => {
           content: record.content,
           color: encodeColor(record.color),
           tags: record.repeatDays || [0, 1, 2, 3, 4, 5, 6],
+          start_date: record.startDate || null,
+          end_date: record.endDate || null,
           mood: date,
         }));
         await supabase.from('records').insert(insertRows);

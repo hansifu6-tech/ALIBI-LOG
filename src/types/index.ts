@@ -13,6 +13,8 @@ export interface DailyRecord extends BaseRecord {
   // using YYYY-MM-DD string format
   completedDates: string[]; 
   repeatDays: number[]; // [0-6], 0 is Sunday
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string;   // YYYY-MM-DD
 }
 
 export interface SpecialRecord extends BaseRecord {
