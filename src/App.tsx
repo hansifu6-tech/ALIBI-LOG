@@ -436,7 +436,7 @@ function App() {
                     <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl z-[100] p-1 flex flex-col gap-1" onMouseDown={(e) => e.stopPropagation()}>
                       {viewMode === 'calendar' && isHabitMode && (
                         <button
-                          onClick={() => { setIsShareModalOpen(true); setIsOutputMenuOpen(false); }}
+                          onClick={() => { setViewMode('calendar'); setIsShareModalOpen(true); setIsOutputMenuOpen(false); }}
                           className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 rounded-xl transition-all active:scale-[0.98] w-full text-left shadow-md"
                         >
                           <CheckCircle2 size={14} />
@@ -559,7 +559,7 @@ function App() {
                   {(() => {
                     // Build list of enabled items
                     const fanItems: { key: string; icon: React.ReactNode; label: string; gradient: string; onClick?: () => void; to?: string }[] = [];
-                    if (isHabitMode) fanItems.push({ key: 'habit', icon: <CheckCircle2 size={13} />, label: '打卡海报', gradient: 'from-blue-500 to-indigo-500', onClick: () => { setIsShareModalOpen(true); setIsOutputMenuOpen(false); } });
+                    if (isHabitMode) fanItems.push({ key: 'habit', icon: <CheckCircle2 size={13} />, label: '打卡海报', gradient: 'from-blue-500 to-indigo-500', onClick: () => { setViewMode('calendar'); setIsShareModalOpen(true); setIsOutputMenuOpen(false); } });
                     if (isTheaterMode) fanItems.push({ key: 'theater', icon: <Theater size={13} />, label: '观演总结', gradient: 'from-purple-500 to-violet-500', to: '/theater-summary' });
                     if (isFoodMode) fanItems.push({ key: 'food', icon: <Utensils size={13} />, label: '美食总结', gradient: 'from-amber-500 to-orange-500', to: '/food-summary' });
                     if (isTravelMode) fanItems.push({ key: 'travel', icon: <Palmtree size={13} />, label: '旅行总结', gradient: 'from-emerald-500 to-teal-500', to: '/travel-summary' });

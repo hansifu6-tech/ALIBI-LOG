@@ -1165,16 +1165,12 @@ function TimelineViewInner({
                                         <span className="text-base font-black italic tabular-nums leading-none tracking-tighter">
                                           {score.toFixed(1)}
                                         </span>
-                                        <div className="flex gap-0.5 mt-1">
+                                        <div className="flex gap-px mt-0.5">
                                           {[1, 2, 3, 4, 5].map(s => (
-                                            <div 
+                                            <span 
                                               key={s} 
-                                              className={`w-1.5 h-1.5 rounded-full ${
-                                                s <= score 
-                                                  ? (isFood ? 'bg-amber-400' : 'bg-purple-400') 
-                                                  : 'bg-gray-200 dark:bg-gray-700'
-                                              }`} 
-                                            />
+                                              style={{ fontSize: '10px', lineHeight: 1, color: s <= score ? (isFood ? '#f59e0b' : '#a855f7') : '#d1d5db' }}
+                                            >★</span>
                                           ))}
                                         </div>
                                       </div>
