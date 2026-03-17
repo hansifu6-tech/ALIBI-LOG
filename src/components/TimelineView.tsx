@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, memo } from 'react';
-import { MapPin, Ticket, Clock, Edit3, Users, Building2, Utensils, Sticker, Theater, UtensilsCrossed, Search, CalendarSearch, X, Palmtree } from 'lucide-react';
+import { MapPin, Ticket, Clock, Edit3, Users, Building2, Utensils, Sticker, Theater, UtensilsCrossed, Search, CalendarSearch, X, Palmtree, Landmark } from 'lucide-react';
 import type { EventRecord, TheaterMetadata, FoodMetadata, TravelMetadata } from '../types';
 
 interface TimelineViewProps {
@@ -476,7 +476,7 @@ function TimelineViewInner({
                                   <div className="flex flex-col gap-1 mt-1">
                                     {extra.attractions.map((att, aIdx) => (
                                       <div key={aIdx} className="flex items-center gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
-                                        <div className="w-3.5 flex justify-center shrink-0"><Palmtree size={11} /></div>
+                                        <div className="w-3.5 flex justify-center shrink-0"><Landmark size={11} /></div>
                                         <span className="flex-1">
                                           <HighlightText text={att.name} keyword={kw} />
                                           {att.address && <span className="text-emerald-500/60 ml-1 text-[10px]"> · {att.address}</span>}
@@ -1053,7 +1053,7 @@ function TimelineViewInner({
                                       {extra.attractions.map((att, aIdx) => (
                                         <div key={aIdx} className="flex items-center gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
                                           <div className="w-3.5 flex justify-center shrink-0">
-                                            <Palmtree size={11} />
+                                            <Landmark size={11} />
                                           </div>
                                           <span className="flex-1">
                                             <HighlightText text={att.name} keyword={kw} />
