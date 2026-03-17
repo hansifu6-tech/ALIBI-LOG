@@ -364,16 +364,15 @@ function CalendarInner({
             const habitId = h.id;
             habitStats.set(habitId, (habitStats.get(habitId) || 0) + 1);
             
-            // Extract hour from created_at or completion metadata if we had it
-            // Since we only have completedDates (strings), we might need to assume 
-            // the created_at of the record as a proxy for 'style', 
-            // BUT the user specifically asked for energy period based on打卡频率.
-            // If we don't have per-check-in timestamps, let's look at the habit's own created_at 
-            // as a hint, or randomize slightly for demo if data is missing, 
-            // but let's try to find it in records.
-            if ((h as any).createdAt) {
-               const hour = new Date((h as any).createdAt).getHours();
-               hourStats.set(hour, (hourStats.get(hour) || 0) + 1);
+            // Use per-checkin timestamp for accurate energy period
+            const daily = h as DailyRecord;
+            if (daily.checkinTimestamps && daily.checkinTimestamps.length > 0) {
+              // Find the timestamp for this specific date's check-in
+              const dateIndex = daily.completedDates?.indexOf(dateStr);
+              if (dateIndex !== undefined && dateIndex >= 0 && dateIndex < daily.checkinTimestamps.length) {
+                const hour = new Date(daily.checkinTimestamps[dateIndex]).getHours();
+                hourStats.set(hour, (hourStats.get(hour) || 0) + 1);
+              }
             }
           }
           return isCompleted;

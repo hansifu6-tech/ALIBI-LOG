@@ -119,6 +119,7 @@ function aggregateDailyRows(rows: any[]): DailyRecord[] {
     color: { bg: string; text: string }; 
     createdAt: number; 
     dates: string[]; 
+    checkinTimestamps: number[];
     repeatDays: number[];
     startDate?: string;
     endDate?: string;
@@ -148,6 +149,7 @@ function aggregateDailyRows(rows: any[]): DailyRecord[] {
         color, 
         createdAt, 
         dates: [], 
+        checkinTimestamps: [],
         repeatDays: [0, 1, 2, 3, 4, 5, 6],
         startDate: rowStartDate,
         endDate: rowEndDate,
@@ -169,17 +171,21 @@ function aggregateDailyRows(rows: any[]): DailyRecord[] {
     }
     if (rowRepeatDays) entry.repeatDays = rowRepeatDays;
     
-    // Collect check-in dates
-    if (moodIsDate) entry.dates.push(row.mood);
+    // Collect check-in dates and timestamps
+    if (moodIsDate) {
+      entry.dates.push(row.mood);
+      entry.checkinTimestamps.push(createdAt);
+    }
   }
 
-  return Array.from(map.entries()).map(([content, { id, color, createdAt, dates, repeatDays, startDate, endDate, reflection, extra_data }]) => ({
+  return Array.from(map.entries()).map(([content, { id, color, createdAt, dates, checkinTimestamps, repeatDays, startDate, endDate, reflection, extra_data }]) => ({
     id,
     createdAt,
     type: 'daily',
     content,
     color,
     completedDates: dates,
+    checkinTimestamps,
     repeatDays,
     startDate,
     endDate,

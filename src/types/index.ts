@@ -88,6 +88,7 @@ export interface DailyRecord extends BaseRecord {
   // completedDates tracks which specific dates this daily record was completed on
   // using YYYY-MM-DD string format
   completedDates: string[]; 
+  checkinTimestamps: number[]; // per-checkin created_at timestamps for energy period
   repeatDays: number[]; // [0-6], 0 is Sunday
   startDate?: string; // YYYY-MM-DD
   endDate?: string;   // YYYY-MM-DD
