@@ -469,7 +469,7 @@ function TimelineViewInner({
                                 {extra.totalSpend && (
                                   <div className="flex items-start gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
                                     <div className="w-3.5 flex justify-center shrink-0 mt-0.5"><Ticket size={12} /></div>
-                                    <span className="flex-1">￥{extra.totalSpend}</span>
+                                    <span className="flex-1">￥{parseFloat(Number(extra.totalSpend).toFixed(2))}</span>
                                   </div>
                                 )}
                                 {extra.attractions && extra.attractions.length > 0 && (
@@ -1044,7 +1044,7 @@ function TimelineViewInner({
                                         <Ticket size={12} />
                                       </div>
                                       <span className="flex-1">
-                                        ￥{extra.totalSpend}
+                                        ￥{parseFloat(Number(extra.totalSpend).toFixed(2))}
                                       </span>
                                     </div>
                                   )}
