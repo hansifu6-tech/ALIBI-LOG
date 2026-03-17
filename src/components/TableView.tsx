@@ -132,12 +132,15 @@ const fieldGetters: Record<string, (r: EventRecord) => FieldDef[]> = {
   normal: getNormalFields, food: getFoodFields, theater: getTheaterFields, travel: getTravelFields,
 };
 
+/* ──────── Parent tags to exclude from sub-tag display ──────── */
+const PARENT_TAGS = new Set(['普通模式', '演出模式', '美食模式', '旅行模式']);
+
 /* ──────── Desktop Table Column Renderers ──────── */
 const columnHeaders: Record<string, string[]> = {
   normal: ['标题', '日期', '标签', '地点', '感想', '图片'],
-  food: ['标题', '日期', '餐厅', '评分', '人均/总价', '菜品', '感想', '图片'],
-  theater: ['标题', '日期', '城市', '剧场', '类型', '评分', '票价', '座位', '演员', '感想', '图片'],
-  travel: ['标题', '开始日期', '结束日期', '天数', '目的地', '总支出', '景点', '感想', '图片'],
+  food: ['标题', '日期', '标签', '餐厅', '评分', '人均/总价', '菜品', '感想', '图片'],
+  theater: ['标题', '日期', '标签', '城市', '剧场', '类型', '评分', '票价', '座位', '演员', '感想', '图片'],
+  travel: ['标题', '开始日期', '结束日期', '天数', '标签', '目的地', '总支出', '景点', '感想', '图片'],
 };
 
 function renderNormalCols(r: EventRecord) {
@@ -160,6 +163,7 @@ function renderFoodCols(r: EventRecord) {
     <>
       <td className="px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-gray-100 truncate max-w-[200px]">{r.title}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.dateStr}</td>
+      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[100px]">{r.tag_names?.filter(n => !PARENT_TAGS.has(n)).join(', ') || '-'}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{fd?.restaurant || '-'}</td>
       <td className="px-3 py-2.5 text-xs">{fd?.rating ? renderStars(fd.rating, '#f59e0b') : '-'}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{fd?.price ? `¥${fd.price}` : '-'}</td>
@@ -176,6 +180,7 @@ function renderTheaterCols(r: EventRecord) {
     <>
       <td className="px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-gray-100 truncate max-w-[200px]">{r.title}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.dateStr}</td>
+      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[100px]">{r.tag_names?.filter(n => !PARENT_TAGS.has(n)).join(', ') || '-'}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[80px]">{Array.isArray(td?.city) ? td!.city.join(' ') : td?.city || '-'}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[100px]">{td?.theater || '-'}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{td?.type || '-'}</td>
@@ -198,6 +203,7 @@ function renderTravelCols(r: EventRecord) {
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{tv?.startDate || '-'}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{tv?.endDate || '-'}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{days}天</td>
+      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[100px]">{r.tag_names?.filter(n => !PARENT_TAGS.has(n)).join(', ') || '-'}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{tv?.destinations?.join(', ') || '-'}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{tv?.totalSpend ? `¥${tv.totalSpend.toLocaleString()}` : '-'}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{tv?.attractions?.map(a => a.name).join(', ') || '-'}</td>
