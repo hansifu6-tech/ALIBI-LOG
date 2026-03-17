@@ -135,7 +135,7 @@ const fieldGetters: Record<string, (r: EventRecord) => FieldDef[]> = {
 /* ──────── Desktop Table Column Renderers ──────── */
 const columnHeaders: Record<string, string[]> = {
   normal: ['标题', '日期', '标签', '地点', '感想', '图片'],
-  food: ['标题', '日期', '餐厅', '城市', '评分', '人均', '菜品', '评价', '图片'],
+  food: ['标题', '日期', '餐厅', '评分', '人均/总价', '菜品', '感想', '图片'],
   theater: ['标题', '日期', '城市', '剧场', '类型', '评分', '票价', '座位', '演员', '感想', '图片'],
   travel: ['标题', '开始日期', '结束日期', '天数', '目的地', '总支出', '景点', '感想', '图片'],
 };
@@ -161,7 +161,6 @@ function renderFoodCols(r: EventRecord) {
       <td className="px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-gray-100 truncate max-w-[200px]">{r.title}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.dateStr}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{fd?.restaurant || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[80px]">{Array.isArray(fd?.city) ? fd!.city.join(' ') : fd?.city || '-'}</td>
       <td className="px-3 py-2.5 text-xs">{fd?.rating ? renderStars(fd.rating, '#f59e0b') : '-'}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{fd?.price ? `¥${fd.price}` : '-'}</td>
       <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{fd?.dishes?.map(d => d.name).join(', ') || '-'}</td>

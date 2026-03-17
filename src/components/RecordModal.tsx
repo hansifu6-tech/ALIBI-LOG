@@ -425,6 +425,8 @@ export function RecordModal({
           setFoodLat(foodExtra.lat);
           setFoodLng(foodExtra.lng);
           setFoodDishes(foodExtra.dishes?.length ? foodExtra.dishes.map(d => ({ name: d.name, rating: d.rating || 0 })) : [{ name: '', rating: 0 }]);
+          // Load food comment into reflection
+          if (foodExtra.comment) setReflection(foodExtra.comment);
         }
 
         // Backfill theater POI data
