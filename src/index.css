@@ -1,0 +1,284 @@
+@import "tailwindcss";
+
+
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+  --bg-color: #FDFCF9;
+  --text-color: #0f172a;
+  --nav-bg: #FFFFFF;
+  --cell-bg: #FFFFFF;
+  --cell-text: #333333;
+  --cell-border: rgba(0, 0, 0, 0.05);
+  --header-text: #0f172a;
+  --today-date-text: #3B82F6;
+  --today-weekday-text: #3B82F6;
+  --grid-weekday-text: #94a3b8;
+  --today-border: #D1D5DB;
+  --today-border-width: 2px;
+  --habit-unchecked-bg: #F0F0F0;
+  --habit-unchecked-text: #888888;
+  --weekday-text: #94a3b8;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #1A1A1A;
+    --text-color: #f9fafb;
+    --nav-bg: #262626;
+    --cell-bg: rgba(255, 255, 255, 0.08);
+    --cell-text: #FFFFFF;
+    --cell-border: rgba(255, 255, 255, 0.1);
+    --cell-glow: 0 0 10px rgba(255, 255, 255, 0.15);
+    --header-text: #FFFFFF;
+    --today-date-text: #A5B4FC;
+    --today-weekday-text: #A5B4FC;
+    --grid-weekday-text: #A5B4FC;
+    --today-highlight: 0 0 15px rgba(255, 255, 255, 0.15);
+    --today-border: #FFFFFF;
+    --today-border-width: 2.5px;
+    --habit-unchecked-bg: #F0F0F0;
+    --habit-unchecked-border: rgba(255, 255, 255, 0.2);
+    --habit-unchecked-text: #888888;
+    --weekday-text: #FFFFFF;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+  }
+}
+
+.dark {
+  --bg-color: #1A1A1A;
+  --text-color: #f9fafb;
+  --nav-bg: #262626;
+  --cell-bg: rgba(255, 255, 255, 0.08);
+  --cell-text: #FFFFFF;
+  --cell-border: rgba(255, 255, 255, 0.1);
+  --cell-glow: 0 0 10px rgba(255, 255, 255, 0.15);
+  --header-text: #FFFFFF;
+  --today-date-text: #A5B4FC;
+  --today-weekday-text: #A5B4FC;
+  --grid-weekday-text: #A5B4FC;
+  --today-highlight: 0 0 15px rgba(255, 255, 255, 0.15);
+  --today-border: #FFFFFF;
+  --today-border-width: 2.5px;
+  --habit-unchecked-bg: #F0F0F0;
+  --habit-unchecked-border: rgba(255, 255, 255, 0.2);
+  --habit-unchecked-text: #888888;
+  --weekday-text: #FFFFFF;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+/* Force high-contrast text color reversal on hover for Dark Mode */
+.dark .force-white-reverse-hover {
+  color: #FFFFFF !important;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.dark .force-white-reverse-hover:hover,
+.dark .group\/header:hover .force-white-reverse-hover {
+  color: #0f172a !important; /* slate-900 */
+}
+
+
+
+
+
+
+
+
+
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 
+ * Rainbow Progress Border Definitions
+ * Uses @property to allow smooth, hardware-accelerated transitions of conic-gradient angles.
+ */
+@property --rainbow-progress {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+
+@property --angle {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 180deg; /* Starts from top-center */
+}
+
+/* Base wrapper for cards that have progress tracking */
+.rainbow-card {
+  --rainbow-progress: 0%;
+  --angle: 180deg;
+  --rainbow-width: 4px;
+  /* Pastel "Macaron" Rainbow Palette */
+  --rainbow-gradient: conic-gradient(
+    from var(--angle),
+    transparent 0%,
+    transparent calc(100% - var(--rainbow-progress)),
+    #ffb3ba calc(100% - var(--rainbow-progress)),
+    #ffdfba calc(100% - var(--rainbow-progress) * 0.8),
+    #ffffba calc(100% - var(--rainbow-progress) * 0.6),
+    #baffc9 calc(100% - var(--rainbow-progress) * 0.4),
+    #bae1ff calc(100% - var(--rainbow-progress) * 0.2),
+    #dcbaff 100%
+  );
+  position: relative;
+  transition: --rainbow-progress 0.5s ease-out;
+}
+
+/* Pseudo-element creates the actual border */
+.rainbow-card::after {
+  content: '';
+  position: absolute;
+  inset: 0; /* Align perfectly with card outer edge */
+  border-radius: inherit;
+  z-index: 10;
+  pointer-events: none;
+  background: var(--rainbow-gradient);
+  
+  /* Mask it to only show the border portion, leaving the center hollow */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: var(--rainbow-width); /* Border draws inward strictly from edge */
+  opacity: 0.9;
+  transition: --rainbow-progress 0.5s ease-out;
+}
+
+/* Celebration Animation for 100% completion */
+@keyframes rainbow-spin {
+  0% { --angle: 180deg; opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { --angle: 540deg; opacity: 0.8; }
+}
+
+.rainbow-card.rainbow-card-complete::after {
+  animation: rainbow-spin 4s linear infinite;
+  /* Solid macaron gradient without transparency for full completion */
+  background: conic-gradient(
+    from var(--angle),
+    #ffb3ba 0deg, 
+    #ffdfba 60deg, 
+    #ffffba 120deg, 
+    #baffc9 180deg, 
+    #bae1ff 240deg, 
+    #dcbaff 300deg, 
+    #ffb3ba 360deg
+  );
+
+}
+
+/* 
+ * Mobile Capture Context for Posters (Theater Summary & Others)
+ * Forces a vertical, high-fidelity mobile layout regardless of host screen size.
+ */
+.mobile-capture-context {
+  width: 375px !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+  background-color: #f8fafc !important;
+  color: #1e293b !important;
+  overflow: hidden;
+}
+
+.mobile-capture-context * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  animation: none !important; /* Disable animations during capture */
+  transition: none !important;
+}
+
+/* Force vertical card stacking */
+.mobile-capture-context .grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.5rem !important;
+}
+
+.mobile-capture-context .lg\:grid-cols-4,
+.mobile-capture-context .lg\:grid-cols-12,
+.mobile-capture-context .md\:grid-cols-3 {
+  grid-template-columns: 1fr !important;
+}
+
+.mobile-capture-context .lg\:col-span-8,
+.mobile-capture-context .lg\:col-span-4 {
+  width: 100% !important;
+  grid-column: span 1 / span 1 !important;
+}
+
+/* Adjust padding for mobile scale */
+.mobile-capture-context .sm\:p-10,
+.mobile-capture-context .p-8 {
+  padding: 1.5rem !important;
+}
+
+.mobile-capture-context .max-w-6xl {
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+.mobile-capture-context h1 { font-size: 1.5rem !important; }
+.mobile-capture-context .text-3xl { font-size: 2rem !important; }
+
+/* AMap Suggestion Result Layer Fix */
+.amap-sug-result {
+  z-index: 99999 !important; /* Extremely high to beat any modal */
+  visibility: visible !important;
+  display: block !important;
+  border-radius: 12px !important;
+  padding: 6px !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  box-shadow: 0 10px 30px -5px rgba(0,0,0,0.2) !important;
+  background-color: #ffffff !important;
+  color: #333333 !important; /* Ensure dark text on light bg */
+}
+
+/* Specific text color for auto-items to prevent inherited white text */
+.amap-sug-result .auto-item {
+  color: #333333 !important;
+  padding: 10px 14px !important;
+  font-size: 13px !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.amap-sug-result .auto-item:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.dark .amap-sug-result {
+  background-color: #1f2937 !important; /* gray-800 */
+  color: #f3f4f6 !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
+
+.dark .amap-sug-result .auto-item {
+  color: #f3f4f6 !important;
+}
+
+.dark .amap-sug-result .auto-item:hover {
+  background-color: #374151 !important; /* gray-700 */
+}
+
+/* Travel dashed frame — visibility tweaks per theme */
+.travel-dashed-frame {
+  filter: saturate(1.5) brightness(0.8);
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+.dark .travel-dashed-frame {
+  filter: none;
+  opacity: 0.9;
+}
