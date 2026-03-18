@@ -50,7 +50,6 @@ export const renderTheaterTicket = async (options: RenderOptions): Promise<strin
   
   // Guard for iOS/Safari height limits (Max 4096px)
   if (height * dpr > 4096) {
-    console.warn('⚠️ Canvas height exceeds Safari limits. Capping to 4096px.');
     canvas.height = 4096;
     canvas.width = (4096 / height) * width;
     ctx.scale(4096 / height, 4096 / height);

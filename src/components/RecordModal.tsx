@@ -518,15 +518,12 @@ export function RecordModal({
   const initAutoComplete = useCallback(() => {
     // 节点 B: AMap 对象检测
     if (typeof window === 'undefined' || !(window as any).AMap) {
-      console.warn('[AMap Debug] 节点 B 失败: window.AMap 对象不存在');
       return;
     }
     const AMap = (window as any).AMap;
-    console.log('[AMap Debug] 节点 B 成功: AMap 对象就绪');
 
     // 节点 C: 多插件加载 (扩展支持精准地理功能)
     AMap.plugin(['AMap.AutoComplete', 'AMap.PlaceSearch', 'AMap.DistrictSearch', 'AMap.CitySearch'], () => {
-      console.log('[AMap Debug] 节点 C 成功: 地理与搜索全量插件加载完成');
       
       // 1. Manual IP Positioning (Disabled auto-trigger on load as per request)
       // Maintaining current states, no reset here
@@ -540,16 +537,13 @@ export function RecordModal({
       });
 
       const tryBind = () => {
-        console.log('[AMap Debug] 执行 300ms 强制延时绑定...');
         setTimeout(() => {
           if (!poiInputRef.current) {
-            console.warn('[AMap Debug] 检测到 Ref 绑定失败: poiInputRef.current 尚未挂载，重试中...');
             setTimeout(tryBind, 200);
             return;
           }
 
           try {
-            console.log('[AMap Debug] 节点 D 启动: 正在通过 Ref 绑定插件');
             const auto = new AMap.AutoComplete({
               city: foodCityRef.current === '全国' ? '' : foodCityRef.current,
               citylimit: foodCityRef.current !== '全国' && !!foodCityRef.current
@@ -567,7 +561,6 @@ export function RecordModal({
 
             // Manual Selection Handler (to be used by Custom UI)
             (window as any).handlePoiSelect = async (poi: any) => {
-              console.log('[Search Debug] 自定义 UI 选中 (ID):', poi.id);
               if (!poi || !poi.id) return;
 
               // 1. PHYSICAL FEEDBACK: Instant Response
@@ -583,7 +576,6 @@ export function RecordModal({
                 const pname = poi.pname || '';
                 const cname = poi.cityname || '';
                 const district = poi.district || '';
-                console.log('[POI City Debug] pname:', pname, 'cityname:', cname, 'district:', district);
                 if (pname && cname) {
                   // PlaceSearch results have pname/cityname
                   setFoodProvince(pname);
@@ -602,12 +594,10 @@ export function RecordModal({
               if (poi.location && poi.location !== '' && typeof poi.location !== 'string') {
                 const lat = typeof poi.location.getLat === 'function' ? poi.location.getLat() : poi.location.lat;
                 const lng = typeof poi.location.getLng === 'function' ? poi.location.getLng() : poi.location.lng;
-                console.log('[POI Debug] Captured coords:', lat, lng, 'from', poi.location);
                 if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
                   setFoodLat(lat);
                   setFoodLng(lng);
                 } else {
-                  console.warn('[POI Debug] Invalid coords, clearing');
                   setFoodLat(undefined);
                   setFoodLng(undefined);
                 }
@@ -615,7 +605,6 @@ export function RecordModal({
                 // Handle string format "lng,lat"
                 const parts = poi.location.split(',').map(Number);
                 if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-                  console.log('[POI Debug] Parsed string coords:', parts[1], parts[0]);
                   setFoodLat(parts[1]);
                   setFoodLng(parts[0]);
                 } else {
@@ -623,7 +612,6 @@ export function RecordModal({
                   setFoodLng(undefined);
                 }
               } else {
-                console.log('[POI Debug] No valid location on POI, clearing coords');
                 setFoodLat(undefined);
                 setFoodLng(undefined);
               }
@@ -639,7 +627,6 @@ export function RecordModal({
 
             // map loaded status set removed as it's no longer used in UI
           } catch (err) {
-            console.error('[AMap Debug] 节点 D 异常: 插件实例化或绑定失败', err);
           }
         }, 300);
       };
@@ -658,11 +645,9 @@ export function RecordModal({
     setIsLocationLoading(true);
     citySearch.getLocalCity((status: string, result: any) => {
       if (status === 'complete' && result.info === 'OK') {
-        console.log('[AMap Debug] 手动定位成功:', result.province, result.city);
         setFoodProvince(result.province);
         setFoodCity(result.city);
       } else {
-        console.error('[AMap Debug] 手动定位失败');
       }
       setIsLocationLoading(false);
     });
@@ -736,7 +721,6 @@ export function RecordModal({
     script.async = true;
     script.onload = initAutoComplete;
     script.onerror = () => {
-      console.warn('[AMap] SDK load failed, falling back to manual input.');
     };
     document.head.appendChild(script);
   }, [initAutoComplete]);
@@ -744,11 +728,9 @@ export function RecordModal({
   // Dedicated Effect for Food Mode AMap Initialization
   useEffect(() => {
     if (isOpen && activeTab === 'food') {
-      console.log('[AMap Debug] 节点 A: 已进入美食 Tab 模式，启动初始化链路');
       try {
         loadAMapScript();
       } catch (err) {
-        console.error('[AMap Debug] 节点 A 异常: 启动脚本加载失败', err);
       }
     }
   }, [isOpen, activeTab, loadAMapScript]);
@@ -785,8 +767,7 @@ export function RecordModal({
               citylimit: normalCityRef.current !== '全国' && !!normalCityRef.current
             });
             normalAcRef.current = auto;
-            console.log('[AMap Normal] AutoComplete init success');
-          } catch (err) { console.error('[AMap Normal] init failed', err); }
+          } catch (err) { /* silently ignore AMap init error */ }
         };
         setTimeout(tryBind, 300);
       });
@@ -820,7 +801,6 @@ export function RecordModal({
 
   // Normal mode: POI selection handler
   const handleNormalPoiSelect = useCallback((poi: any) => {
-    console.log('[AMap Normal] POI selected:', poi.name, poi.address);
     blockNormalSuggestRef.current = true;
     setShowNormalSuggestions(false);
     setNormalSuggestions([]);
@@ -852,7 +832,6 @@ export function RecordModal({
       AMap.plugin(['AMap.CitySearch'], () => {
         const citySearch = new AMap.CitySearch();
         citySearch.getLocalCity((status: string, result: any) => {
-          console.log('[AMap Normal] CitySearch result:', status, result);
           if (status === 'complete' && result.info === 'OK') {
             // Match province name to provinceData format (strip 省/市/自治区 suffix)
             const rawProv = result.province || '';
@@ -906,8 +885,7 @@ export function RecordModal({
               citylimit: !!theaterCity
             });
             theaterAcRef.current = auto;
-            console.log('[AMap Theater] AutoComplete init success');
-          } catch (err) { console.error('[AMap Theater] init failed', err); }
+          } catch (err) { /* silently ignore AMap init error */ }
         };
         setTimeout(tryBind, 300);
       });
@@ -941,7 +919,6 @@ export function RecordModal({
 
   // Theater mode: POI selection handler
   const handleTheaterPoiSelect = useCallback((poi: any) => {
-    console.log('[AMap Theater] POI selected:', poi.name, poi.address);
     blockTheaterSuggestRef.current = true;
     setShowTheaterSuggestions(false);
     setTheaterSuggestions([]);
@@ -985,7 +962,6 @@ export function RecordModal({
       AMap.plugin(['AMap.CitySearch'], () => {
         const citySearch = new AMap.CitySearch();
         citySearch.getLocalCity((status: string, result: any) => {
-          console.log('[AMap Theater] CitySearch result:', status, result);
           if (status === 'complete' && result.info === 'OK') {
             const rawProv = result.province || '';
             const shortProv = rawProv.replace(/(省|市|自治区|壮族自治区|回族自治区|维吾尔自治区|特别行政区)$/, '');
@@ -1183,7 +1159,6 @@ export function RecordModal({
 
         // Food mode: build extra_data before the shared write
         if (activeTab === 'food') {
-          console.log('[Food Save Debug] activeTab:', activeTab, '| foodRating:', foodRating, '| foodAddress:', foodAddress, '| foodPrice:', foodPrice);
           extra_data = {
             restaurant: specialTitle.trim(),
             address: foodAddress || undefined,
@@ -1195,9 +1170,7 @@ export function RecordModal({
             lat: foodLat,
             lng: foodLng,
           } as any;
-          console.log('[Food Save Debug] extra_data built:', JSON.stringify(extra_data));
         } else {
-          console.log('[Food Save Debug] NOT in food tab. activeTab:', activeTab);
         }
 
         // Travel mode: build extra_data

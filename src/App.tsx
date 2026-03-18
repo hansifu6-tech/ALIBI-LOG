@@ -325,7 +325,6 @@ function App() {
       return true;
     });
 
-    console.log('[Filter] 筛选后记录数:', result.length, '| 全局标签:', [...selectedGeneralTagNames], '| 模式筛选:', [...subsByCategory.keys()]);
     return result;
   }, [records, selectedFunctionIds, selectedSubTagIds, allAvailableTags, isTheaterMode, isHabitMode, isFoodMode, isTravelMode]);
 

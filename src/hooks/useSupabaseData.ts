@@ -7,7 +7,6 @@ import type { CalendarRecord, DailyRecord, EventRecord, RecordTag } from '../typ
 // ─────────────────────────────────────────────
 function reportError(context: string, error: unknown) {
   const msg = (error as { message?: string })?.message ?? String(error);
-  console.error(`[Supabase] ${context}:`, error);
   alert(`❌ 操作失败 (${context})\n\n${msg}`);
 }
 
@@ -31,7 +30,6 @@ function encodeColor(color: unknown): string {
 function safeImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   if (url.startsWith('data:')) {
-    console.warn('[Supabase] Blocked base64 image_url — use Storage URL only');
     return null;
   }
   return url;
@@ -302,7 +300,6 @@ export const useSupabaseData = (userId: string | null | undefined) => {
       .eq('user_id', userId);
 
     if (error) {
-      console.warn('[Supabase] fetchUserTags error:', error.message);
       const cached = loadTags(userId);
       setTags(cached);
       setAllAvailableTags(cached);
@@ -331,7 +328,6 @@ export const useSupabaseData = (userId: string | null | undefined) => {
     const hasTravel = cloudTags.some(t => t.name === '旅行模式' && t.tag_type === 'function');
 
     if (hasGeneral && hasTheatre && hasFood && hasTravel) {
-      console.log('[Supabase] 所有父标签完整，跳过注入。');
     } else {
       const toInsert = [
         ...(hasGeneral ? [] : [{ name: '普通模式', tag_type: 'function' }]),
@@ -339,7 +335,6 @@ export const useSupabaseData = (userId: string | null | undefined) => {
         ...(hasFood ? [] : [{ name: '美食模式', tag_type: 'function' }]),
         ...(hasTravel ? [] : [{ name: '旅行模式', tag_type: 'function' }]),
       ];
-      console.log('[Supabase] 检测到缺失父标签，开始注入:', toInsert.map(t => t.name).join(', '));
 
       let anyInserted = false;
       for (const tag of toInsert) {
@@ -347,9 +342,7 @@ export const useSupabaseData = (userId: string | null | undefined) => {
           .from('tags')
           .insert({ user_id: userId, name: tag.name, tag_type: tag.tag_type });
         if (insertErr) {
-          console.error(`[Supabase] 注入 [${tag.name}] 失败:`, insertErr.message);
         } else {
-          console.log(`[Supabase] 注入成功: [${tag.name}]`);
           anyInserted = true;
         }
       }
@@ -388,7 +381,6 @@ export const useSupabaseData = (userId: string | null | undefined) => {
       if (travelToSeed.length > 0) {
         const rows = travelToSeed.map(d => ({ user_id: userId, name: d.name, tag_type: d.tag_type }));
         await supabase.from('tags').insert(rows);
-        console.log(`[Supabase] Seeded ${travelToSeed.length} travel tags:`, travelToSeed.map(t => t.name).join(', '));
         const { data: finalTags } = await supabase
           .from('tags').select('id, name, tag_type').eq('user_id', userId);
         if (finalTags) {
@@ -409,7 +401,6 @@ export const useSupabaseData = (userId: string | null | undefined) => {
     const seedKey = `alibi_defaults_seeded_${userId}`;
     if (localStorage.getItem(seedKey)) return;
 
-    console.log('[Supabase] First login detected, seeding default tags...');
 
     // Get the latest tags after parent tag init
     const { data: latestTags } = await supabase
@@ -445,9 +436,7 @@ export const useSupabaseData = (userId: string | null | undefined) => {
       const rows = toSeed.map(d => ({ user_id: userId, name: d.name, tag_type: d.tag_type }));
       const { error: seedErr } = await supabase.from('tags').insert(rows);
       if (seedErr) {
-        console.error('[Supabase] Default tag seeding failed:', seedErr.message);
       } else {
-        console.log(`[Supabase] Seeded ${toSeed.length} default tags:`, toSeed.map(t => t.name).join(', '));
         // Re-fetch to pick up the new tags
         const { data: finalTags } = await supabase
           .from('tags').select('id, name, tag_type').eq('user_id', userId);
@@ -882,7 +871,6 @@ export const useSupabaseData = (userId: string | null | undefined) => {
         }
       }
     } catch (cascadeErr) {
-      console.error('[Supabase] renameTag cascade error:', cascadeErr);
     }
 
     // 3. Update local state

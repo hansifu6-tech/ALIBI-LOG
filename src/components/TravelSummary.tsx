@@ -584,7 +584,6 @@ export const TravelSummary: React.FC<TravelSummaryProps> = ({ records, tags, isT
       });
       setPosterImage(canvas.toDataURL('image/png'));
     } catch (err) {
-      console.error('Poster generation failed:', err);
       alert('海报生成失败，请重试');
     } finally {
       document.body.removeChild(iframe);
@@ -611,7 +610,7 @@ export const TravelSummary: React.FC<TravelSummaryProps> = ({ records, tags, isT
       fetch('/maps/china.json').then(r => r.json()).then(data => {
         setChinaGeo(data);
         echarts.registerMap('china', data);
-      }).catch(e => console.error('Failed to load china map:', e));
+      }).catch(() => {});
     };
     if ('requestIdleCallback' in window) {
       (window as any).requestIdleCallback(loadChina);
@@ -627,7 +626,7 @@ export const TravelSummary: React.FC<TravelSummaryProps> = ({ records, tags, isT
       fetch('/maps/world.json').then(r => r.json()).then(data => {
         setWorldGeo(data);
         echarts.registerMap('world', data);
-      }).catch(e => console.error('Failed to load world map:', e));
+      }).catch(() => {});
     }
   }, [mapScope, posterMapChoice, worldGeo]);
 

@@ -510,7 +510,6 @@ function CalendarInner({
     const generate = async () => {
       // 1. Dynamic Library Check
       if (!(window as any).html2canvas) {
-        console.log('html2canvas not found in window, loading from CDN...');
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
           script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
@@ -573,7 +572,6 @@ function CalendarInner({
         if (cloneContainer && cloneContainer.parentNode) {
           document.body.removeChild(cloneContainer);
         }
-        console.error('Poster generation failed:', error);
         alert('生成失败，请检查控制台错误日志。');
         setIsPosterLoading(false);
       }

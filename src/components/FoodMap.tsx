@@ -66,7 +66,6 @@ export const FoodMap: React.FC<FoodMapProps> = ({ records }) => {
         const extra = r.extra_data as FoodMetadata | undefined;
         if (!extra) return null;
         // Debug: log each food record's raw coordinate data
-        console.log('[FoodMap] Record:', extra.restaurant || r.title, '| lat:', extra.lat, '(type:', typeof extra.lat, ') | lng:', extra.lng, '(type:', typeof extra.lng, ') | address:', extra.address);
         return {
           name: extra.restaurant || r.title || '未知店铺',
           address: extra.address || '',
@@ -83,7 +82,6 @@ export const FoodMap: React.FC<FoodMapProps> = ({ records }) => {
   // Points with valid numeric coordinates
   const geoPoints = useMemo(() => {
     const pts = foodPoints.filter(p => typeof p.lat === 'number' && typeof p.lng === 'number' && !isNaN(p.lat) && !isNaN(p.lng));
-    console.log('[FoodMap] geoPoints (will show on map):', pts.map(p => `${p.name}: [${p.lat}, ${p.lng}]`));
     return pts;
   }, [foodPoints]);
 
@@ -152,8 +150,6 @@ export const FoodMap: React.FC<FoodMapProps> = ({ records }) => {
           autoMove: true,
         });
 
-        console.log('[FoodMap] Total food points:', foodPoints.length);
-        console.log('[FoodMap] Points with coordinates (shown on map):', geoPoints.length);
 
         if (geoPoints.length === 0) return;
 

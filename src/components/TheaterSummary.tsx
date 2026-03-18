@@ -73,12 +73,10 @@ export const TheaterSummary: React.FC<TheaterSummaryProps> = ({ records, tags })
     fetch('/maps/china.json')
       .then(res => res.json())
       .then(data => {
-        console.log('🗺️ Map JSON Loaded. Example feature name:', data.features[0]?.properties?.name);
         setChinaGeo(data);
         echarts.registerMap('china', data);
-        console.log('✅ echarts.registerMap("china") executed.');
       })
-      .catch(err => console.error('❌ Failed to load map:', err));
+      .catch(() => {});
   }, []);
 
   const years = useMemo(() => {
@@ -406,10 +404,8 @@ export const TheaterSummary: React.FC<TheaterSummaryProps> = ({ records, tags })
       });
 
       setPosterImage(dataUrl);
-      console.log('🎟️ Canvas Ticket Generation successful!');
 
     } catch (err: any) {
-      console.error('❌ Canvas Export Error:', err);
       alert('海报生成失败: ' + (err?.message || '画布引擎异常'));
     } finally {
       setIsExporting(false);
@@ -473,10 +469,8 @@ export const TheaterSummary: React.FC<TheaterSummaryProps> = ({ records, tags })
       });
 
       setPosterImage(dataUrl);
-      console.log('🎟️ Horizontal Ticket Generation successful!');
 
     } catch (err: any) {
-      console.error('❌ Horizontal Export Error:', err);
       alert('横版海报生成失败: ' + (err?.message || '画布引擎异常'));
     } finally {
       setIsExportingH(false);

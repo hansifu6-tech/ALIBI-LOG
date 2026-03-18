@@ -242,7 +242,6 @@ export const FoodSummary: React.FC<FoodSummaryProps> = ({ records, tags }) => {
       document.body.removeChild(cloneContainer);
       setPosterImage(canvas.toDataURL('image/png'));
     } catch (err) {
-      console.error('Poster export failed:', err);
       alert('海报生成失败，请重试');
     } finally {
       setIsPosterLoading(false);
