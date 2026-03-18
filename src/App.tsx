@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
+import { Calendar as CalendarView } from './components/Calendar';
+import { TimelineView } from './components/TimelineView';
+import { TableView } from './components/TableView';
 import { AuthView } from './components/AuthView';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabase } from './supabase';
@@ -8,14 +11,11 @@ import { InvitePage } from './components/InvitePage';
 import { GlobalFilter } from './components/GlobalFilter';
 import type { CalendarRecord, EventRecord } from './types';
 
-// Lazy-loaded heavy components (code-split into separate chunks)
-const CalendarView = lazy(() => import('./components/Calendar').then(m => ({ default: m.Calendar })));
-const TimelineView = lazy(() => import('./components/TimelineView').then(m => ({ default: m.TimelineView })));
+// Lazy-loaded: only needed when user navigates to summary pages or opens modal
 const RecordModal = lazy(() => import('./components/RecordModal').then(m => ({ default: m.RecordModal })));
 const TheaterSummary = lazy(() => import('./components/TheaterSummary').then(m => ({ default: m.TheaterSummary })));
 const FoodSummary = lazy(() => import('./components/FoodSummary').then(m => ({ default: m.FoodSummary })));
 const TravelSummary = lazy(() => import('./components/TravelSummary').then(m => ({ default: m.TravelSummary })));
-const TableView = lazy(() => import('./components/TableView').then(m => ({ default: m.TableView })));
 const FunctionHub = lazy(() => import('./components/FunctionHub').then(m => ({ default: m.FunctionHub })));
 
 // ── Inline component (avoids external file import issue on Vercel) ────
