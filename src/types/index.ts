@@ -88,6 +88,7 @@ export interface TravelMetadata {
   startDate: string;
   endDate: string;
   destinations: string[];
+  destType?: 'domestic' | 'overseas';
   expenses?: TravelExpenses;  // structured breakdown (new)
   totalSpend?: number;        // kept for backward compat (old records)
   attractions?: TravelAttraction[];

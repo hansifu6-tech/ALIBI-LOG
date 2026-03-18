@@ -332,6 +332,7 @@ export function RecordModal({
             setTravelRailways(tExtra?.railways?.length ? tExtra.railways.map(r => ({ trainNo: r.trainNo || '', seat: r.seat || '' })) : [{trainNo: '', seat: ''}]);
             setTravelFlights(tExtra?.flights?.length ? tExtra.flights.map(f => ({ airline: f.airline || '', flightNo: f.flightNo || '', departAirport: f.departAirport || '', arriveAirport: f.arriveAirport || '' })) : [{airline: '', flightNo: '', departAirport: '', arriveAirport: ''}]);
             setTravelHotels(tExtra?.hotels || []);
+            setTravelDestType(tExtra?.destType || 'domestic');
             setTravelTransportExpanded(!!(tExtra?.railways?.length || tExtra?.flights?.length || tExtra?.hotels?.length));
           } else {
             setTravelEndDate('');
@@ -1226,6 +1227,7 @@ export function RecordModal({
             railways: (() => { const valid = travelRailways.filter(r => r.trainNo.trim()); return valid.length > 0 ? valid.map(r => ({ trainNo: r.trainNo.trim(), seat: r.seat.trim() || undefined })) : undefined; })(),
             flights: (() => { const valid = travelFlights.filter(f => f.flightNo.trim() || f.airline.trim() || f.departAirport.trim() || f.arriveAirport.trim()); return valid.length > 0 ? valid.map(f => ({ airline: f.airline.trim(), flightNo: f.flightNo.trim(), departAirport: f.departAirport.trim(), arriveAirport: f.arriveAirport.trim() })) : undefined; })(),
             hotels: travelHotels.length > 0 ? travelHotels : undefined,
+            destType: travelDestType,
           };
         }
 
@@ -1259,7 +1261,7 @@ export function RecordModal({
     } finally {
       setIsUploading(false);
     }
-  }, [specialTitle, selYear, selMonth, selDay, activeTab, tags, selectedTagIds, newImageFiles, existingImageUrls, reflection, editingRecord, specialColor, theaterProvince, theaterCity, theaterClub, theaterVenue, theaterType, theaterPrice, theaterScore, theaterActors, theaterUnit, theaterSeat, theaterPoiId, theaterLat, theaterLng, theaterAddress, foodAddress, foodRating, foodPrice, foodLat, foodLng, foodCity, foodProvince, foodDishes, normalProvince, normalCity, normalLocationName, normalLocationAddress, normalPoiId, normalLat, normalLng, travelDestinations, travelExpenses, travelExpenseExpanded, travelSimpleTotal, travelEndDate, travelAttractions, travelLinkedRecordIds, travelRailways, travelFlights, travelHotels, onUpdateRecord, onAddRecord, onClose]);
+  }, [specialTitle, selYear, selMonth, selDay, activeTab, tags, selectedTagIds, newImageFiles, existingImageUrls, reflection, editingRecord, specialColor, theaterProvince, theaterCity, theaterClub, theaterVenue, theaterType, theaterPrice, theaterScore, theaterActors, theaterUnit, theaterSeat, theaterPoiId, theaterLat, theaterLng, theaterAddress, foodAddress, foodRating, foodPrice, foodLat, foodLng, foodCity, foodProvince, foodDishes, normalProvince, normalCity, normalLocationName, normalLocationAddress, normalPoiId, normalLat, normalLng, travelDestinations, travelExpenses, travelExpenseExpanded, travelSimpleTotal, travelEndDate, travelAttractions, travelLinkedRecordIds, travelRailways, travelFlights, travelHotels, travelDestType, onUpdateRecord, onAddRecord, onClose]);
 
   const handleAddNewTag = useCallback(async () => {
     if (newTagName.trim()) {
