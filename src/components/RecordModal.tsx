@@ -2736,8 +2736,8 @@ export function RecordModal({
                              {travelHotels.length > 0 && (
                                <div className="flex flex-wrap gap-1.5 mb-1">
                                  {travelHotels.map((h, i) => (
-                                   <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold">
-                                     {h.name}
+                                   <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold max-w-[200px]">
+                                      <span className="truncate">{h.name}</span>
                                      <button type="button" onClick={() => setTravelHotels(prev => prev.filter((_, idx) => idx !== i))} className="text-blue-400 hover:text-red-500 transition-colors">×</button>
                                    </span>
                                  ))}
@@ -2761,10 +2761,11 @@ export function RecordModal({
                                  const AMap = (window as any).AMap;
                                  const cs = new AMap.CitySearch();
                                  cs.getLocalCity((status: string, result: any) => {
-                                   if (status === 'complete' && result.info === 'OK') {
-                                     setTravelHotelProvince(result.province);
-                                     setTravelHotelCity(result.city);
-                                   }
+                                    if (status === 'complete' && result.info === 'OK') {
+                                      const prov = (result.province || '').replace(/省$/, '').replace(/壮族自治区$/,'广西').replace(/维吾尔自治区$/,'新疆').replace(/回族自治区$/,'宁夏').replace(/自治区$/, '');
+                                      setTravelHotelProvince(prov);
+                                      setTravelHotelCity(result.city || '');
+                                    }
                                  });
                                }} className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 transition-colors shrink-0" title="自动定位">
                                  <LocateFixed size={14} />
@@ -2876,8 +2877,8 @@ export function RecordModal({
                       {travelAttractions.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mb-1">
                           {travelAttractions.map((att, i) => (
-                            <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-bold">
-                              {att.name}
+                            <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-bold max-w-[200px]">
+                              <span className="truncate">{att.name}</span>
                               <button
                                 onClick={() => setTravelAttractions(prev => prev.filter((_, idx) => idx !== i))}
                                 className="text-emerald-400 hover:text-red-500 transition-colors"

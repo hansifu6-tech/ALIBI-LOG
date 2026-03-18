@@ -478,7 +478,7 @@ function TimelineViewInner({
                                 {extra.hotels && extra.hotels.filter(h => h.name).length > 0 && (
                                   <div className="flex items-start gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
                                     <div className="w-3.5 flex justify-center shrink-0 mt-0.5"><Hotel size={12} /></div>
-                                    <span className="flex-1">{extra.hotels.map(h => h.name).join(' | ')}</span>
+                                    <span className="flex-1 truncate">{extra.hotels.map(h => h.name).join(' | ')}</span>
                                   </div>
                                 )}
                                 {extra.destinations && extra.destinations.length > 0 && (
@@ -498,9 +498,8 @@ function TimelineViewInner({
                                     {extra.attractions.map((att, aIdx) => (
                                       <div key={aIdx} className="flex items-center gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
                                         <div className="w-3.5 flex justify-center shrink-0"><Landmark size={11} /></div>
-                                        <span className="flex-1">
+                                        <span className="flex-1 truncate">
                                           <HighlightText text={att.name} keyword={kw} />
-                                          {att.address && <span className="text-emerald-500/60 ml-1 text-[10px]"> · {att.address}</span>}
                                         </span>
                                       </div>
                                     ))}
@@ -1076,9 +1075,8 @@ function TimelineViewInner({
                                           <div className="w-3.5 flex justify-center shrink-0">
                                             <Landmark size={11} />
                                           </div>
-                                          <span className="flex-1">
+                                          <span className="flex-1 truncate">
                                             <HighlightText text={att.name} keyword={kw} />
-                                            {att.address && <span className="text-emerald-500/60 ml-1 text-[10px]"> · {att.address}</span>}
                                           </span>
                                         </div>
                                       ))}
