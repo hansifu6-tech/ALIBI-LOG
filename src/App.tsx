@@ -1,20 +1,22 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { Calendar as CalendarView } from './components/Calendar';
-import { TimelineView } from './components/TimelineView';
-import { RecordModal } from './components/RecordModal';
+import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
 import { AuthView } from './components/AuthView';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabase } from './supabase';
 import { LogOut, User as UserIcon, LayoutGrid, List, Table2, X, Moon, Sun, ArrowUp, Settings, Plus, Filter, Utensils, Theater, CalendarCheck, CheckCircle2, ChevronDown, FileOutput, Palmtree } from 'lucide-react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { InvitePage } from './components/InvitePage';
-import { TheaterSummary } from './components/TheaterSummary';
-import { FoodSummary } from './components/FoodSummary';
-import { FunctionHub } from './components/FunctionHub';
 import { GlobalFilter } from './components/GlobalFilter';
-import { TravelSummary } from './components/TravelSummary';
-import { TableView } from './components/TableView';
 import type { CalendarRecord, EventRecord } from './types';
+
+// Lazy-loaded heavy components (code-split into separate chunks)
+const CalendarView = lazy(() => import('./components/Calendar').then(m => ({ default: m.Calendar })));
+const TimelineView = lazy(() => import('./components/TimelineView').then(m => ({ default: m.TimelineView })));
+const RecordModal = lazy(() => import('./components/RecordModal').then(m => ({ default: m.RecordModal })));
+const TheaterSummary = lazy(() => import('./components/TheaterSummary').then(m => ({ default: m.TheaterSummary })));
+const FoodSummary = lazy(() => import('./components/FoodSummary').then(m => ({ default: m.FoodSummary })));
+const TravelSummary = lazy(() => import('./components/TravelSummary').then(m => ({ default: m.TravelSummary })));
+const TableView = lazy(() => import('./components/TableView').then(m => ({ default: m.TableView })));
+const FunctionHub = lazy(() => import('./components/FunctionHub').then(m => ({ default: m.FunctionHub })));
 
 // ── Inline component (avoids external file import issue on Vercel) ────
 function ImageLightbox({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
@@ -39,6 +41,8 @@ function ImageLightbox({ imageUrl, onClose }: { imageUrl: string; onClose: () =>
     </div>
   );
 }
+
+const LazyFallback = <div className="min-h-screen flex items-center justify-center bg-[var(--bg-color)]"><div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
 
 function App() {
   const location = useLocation();
@@ -364,6 +368,7 @@ function App() {
   }
 
   return (
+    <Suspense fallback={LazyFallback}>
       <Routes>
         <Route path="/theater-summary" element={<TheaterSummary records={records.filter(r => r.type === 'special') as EventRecord[]} tags={tags} />} />
         <Route path="/food-summary" element={<FoodSummary records={records.filter(r => r.type === 'special') as EventRecord[]} tags={tags} />} />
@@ -752,6 +757,7 @@ function App() {
           </div>
         } />
       </Routes>
+    </Suspense>
   );
 }
 
