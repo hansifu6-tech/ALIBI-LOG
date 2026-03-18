@@ -2681,7 +2681,7 @@ export function RecordModal({
                                          }, 100);
                                        } else { setAirportSuggestions(null); }
                                      }} placeholder="出发机场" className="w-full px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
-                                     {airportSuggestions && airportSuggestions.idx === i && airportSuggestions.field === 'departAirport' && airportSuggestions.pois.length > 0 && (
+                                     {travelDestType === 'domestic' && airportSuggestions && airportSuggestions.idx === i && airportSuggestions.field === 'departAirport' && airportSuggestions.pois.length > 0 && (
                                        <div className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-40 overflow-y-auto">
                                          {airportSuggestions.pois.map((poi: any, idx: number) => (
                                            <button key={idx} type="button" className="w-full text-left px-3 py-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
@@ -2710,7 +2710,7 @@ export function RecordModal({
                                          }, 100);
                                        } else { setAirportSuggestions(null); }
                                      }} placeholder="到达机场" className="w-full px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
-                                     {airportSuggestions && airportSuggestions.idx === i && airportSuggestions.field === 'arriveAirport' && airportSuggestions.pois.length > 0 && (
+                                     {travelDestType === 'domestic' && airportSuggestions && airportSuggestions.idx === i && airportSuggestions.field === 'arriveAirport' && airportSuggestions.pois.length > 0 && (
                                        <div className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-40 overflow-y-auto">
                                          {airportSuggestions.pois.map((poi: any, idx: number) => (
                                            <button key={idx} type="button" className="w-full text-left px-3 py-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
