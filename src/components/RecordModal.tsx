@@ -2741,8 +2741,11 @@ export function RecordModal({
                                  ))}
                                </div>
                              )}
+                             {/* Hotel input: domestic with AMap, overseas with manual */}
+                             {travelDestType === 'domestic' ? (
+                               <div>
                              {/* City selector + auto-locate */}
-                             <div className="flex gap-2 items-center">
+                             <div className="flex gap-2 items-center mb-1.5">
                                <select value={travelHotelProvince} onChange={e => { setTravelHotelProvince(e.target.value); setTravelHotelCity(''); }} className="w-24 px-1.5 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-xs text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400">
                                  <option value="">省份</option>
                                  {provinceData.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
@@ -2828,6 +2831,35 @@ export function RecordModal({
                                  </div>
                                )}
                              </div>
+                               </div>
+                             ) : (
+                               <div className="flex gap-1.5 items-center">
+                                 <input
+                                   type="text"
+                                   value={travelHotelInput}
+                                   onChange={e => setTravelHotelInput(e.target.value)}
+                                   onKeyDown={e => {
+                                     if (e.key === 'Enter' && travelHotelInput.trim()) {
+                                       e.preventDefault();
+                                       setTravelHotels(prev => [...prev, { name: travelHotelInput.trim() }]);
+                                       setTravelHotelInput('');
+                                     }
+                                   }}
+                                   placeholder="输入酒店名称…"
+                                   className="flex-1 px-3 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300"
+                                 />
+                                 <button
+                                   type="button"
+                                   onClick={() => {
+                                     if (travelHotelInput.trim()) {
+                                       setTravelHotels(prev => [...prev, { name: travelHotelInput.trim() }]);
+                                       setTravelHotelInput('');
+                                     }
+                                   }}
+                                   className="px-2.5 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-bold hover:bg-emerald-600 transition-colors shrink-0"
+                                 >添加</button>
+                               </div>
+                             )}
                            </div>
 
                          </div>
