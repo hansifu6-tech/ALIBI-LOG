@@ -1,22 +1,20 @@
-import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Calendar as CalendarView } from './components/Calendar';
 import { TimelineView } from './components/TimelineView';
-import { TableView } from './components/TableView';
+import { RecordModal } from './components/RecordModal';
 import { AuthView } from './components/AuthView';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { supabase } from './supabase';
 import { LogOut, User as UserIcon, LayoutGrid, List, Table2, X, Moon, Sun, ArrowUp, Settings, Plus, Filter, Utensils, Theater, CalendarCheck, CheckCircle2, ChevronDown, FileOutput, Palmtree } from 'lucide-react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { InvitePage } from './components/InvitePage';
+import { TheaterSummary } from './components/TheaterSummary';
+import { FoodSummary } from './components/FoodSummary';
+import { FunctionHub } from './components/FunctionHub';
 import { GlobalFilter } from './components/GlobalFilter';
+import { TravelSummary } from './components/TravelSummary';
+import { TableView } from './components/TableView';
 import type { CalendarRecord, EventRecord } from './types';
-
-// Lazy-loaded: only needed when user navigates to summary pages or opens modal
-const RecordModal = lazy(() => import('./components/RecordModal').then(m => ({ default: m.RecordModal })));
-const TheaterSummary = lazy(() => import('./components/TheaterSummary').then(m => ({ default: m.TheaterSummary })));
-const FoodSummary = lazy(() => import('./components/FoodSummary').then(m => ({ default: m.FoodSummary })));
-const TravelSummary = lazy(() => import('./components/TravelSummary').then(m => ({ default: m.TravelSummary })));
-const FunctionHub = lazy(() => import('./components/FunctionHub').then(m => ({ default: m.FunctionHub })));
 
 // ── Inline component (avoids external file import issue on Vercel) ────
 function ImageLightbox({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
@@ -41,8 +39,6 @@ function ImageLightbox({ imageUrl, onClose }: { imageUrl: string; onClose: () =>
     </div>
   );
 }
-
-const LazyFallback = <div className="min-h-screen flex items-center justify-center bg-[var(--bg-color)]"><div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
 
 function App() {
   const location = useLocation();
@@ -368,7 +364,6 @@ function App() {
   }
 
   return (
-    <Suspense fallback={LazyFallback}>
       <Routes>
         <Route path="/theater-summary" element={<TheaterSummary records={records.filter(r => r.type === 'special') as EventRecord[]} tags={tags} />} />
         <Route path="/food-summary" element={<FoodSummary records={records.filter(r => r.type === 'special') as EventRecord[]} tags={tags} />} />
@@ -757,7 +752,6 @@ function App() {
           </div>
         } />
       </Routes>
-    </Suspense>
   );
 }
 
