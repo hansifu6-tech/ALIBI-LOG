@@ -128,13 +128,31 @@ export const FoodSummary: React.FC<FoodSummaryProps> = ({ records, tags }) => {
       .filter(([_, count]) => count > 0)
       .map(([name, value]) => ({ name, value }));
 
+    // Adaptive layout: when legend items are many, shrink pie and give legend more space
+    const itemCount = data.length;
+    // Estimate legend rows: ~4 items per row on average
+    const legendRows = Math.ceil(itemCount / 4);
+    // Each legend row is about 22px; reserve space at bottom
+    const legendHeightPct = Math.min(40, legendRows * 8); // max 40% for legend
+    const pieTopPct = Math.max(35, 50 - legendHeightPct / 2); // pie center moves up
+    const outerRadius = Math.max(45, 70 - legendRows * 4) + '%'; // pie shrinks
+    const innerRadius = Math.max(25, 40 - legendRows * 2) + '%';
+
     return {
       tooltip: { trigger: 'item' },
-      legend: { bottom: '5%', left: 'center', textStyle: { color: 'inherit' } },
+      legend: {
+        bottom: '2%',
+        left: 'center',
+        textStyle: { color: 'inherit', fontSize: 12 },
+        itemGap: 8,
+        itemWidth: 10,
+        itemHeight: 10,
+      },
       series: [{
         name: '类别占比',
         type: 'pie',
-        radius: ['40%', '70%'],
+        radius: [innerRadius, outerRadius],
+        center: ['50%', pieTopPct + '%'],
         avoidLabelOverlap: false,
         itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
         label: { show: false },
@@ -151,6 +169,14 @@ export const FoodSummary: React.FC<FoodSummaryProps> = ({ records, tags }) => {
         ],
       }],
     };
+  }, [stats.categoryCount]);
+
+  // Adaptive chart height based on number of categories
+  const pieChartHeight = useMemo(() => {
+    const itemCount = Object.entries(stats.categoryCount).filter(([_, c]) => c > 0).length;
+    const legendRows = Math.ceil(itemCount / 4);
+    // base 260px + extra height per legend row beyond 2
+    return Math.max(280, 260 + Math.max(0, legendRows - 2) * 28);
   }, [stats.categoryCount]);
 
   // ── Poster Time Label ──
@@ -396,9 +422,9 @@ export const FoodSummary: React.FC<FoodSummaryProps> = ({ records, tags }) => {
               标签占比
             </h3>
             {Object.values(stats.categoryCount).some(v => v > 0) ? (
-              <ReactECharts option={pieOption} style={{ height: 300 }} />
+              <ReactECharts option={pieOption} style={{ height: pieChartHeight }} />
             ) : (
-              <div className="h-[300px] flex items-center justify-center text-gray-300 text-sm font-medium">暂无数据</div>
+              <div className="h-[280px] flex items-center justify-center text-gray-300 text-sm font-medium">暂无数据</div>
             )}
           </div>
 
