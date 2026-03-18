@@ -476,7 +476,7 @@ export const TableView: React.FC<TableViewProps> = React.memo(({
               <div className="flex items-center gap-2">
                 {/* Column Picker Toggle */}
                 {!isCollapsed && items.length > 0 && (
-                  <div className="relative" ref={colPickerOpen === section.key ? pickerRef : undefined}>
+                  <div className="relative hidden lg:block" ref={colPickerOpen === section.key ? pickerRef : undefined}>
                     <button
                       onClick={(e) => { e.stopPropagation(); setColPickerOpen(colPickerOpen === section.key ? null : section.key); }}
                       className={`p-1.5 rounded-lg transition-all ${colPickerOpen === section.key ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
