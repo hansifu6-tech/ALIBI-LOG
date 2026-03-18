@@ -1315,6 +1315,13 @@ export const TravelSummary: React.FC<TravelSummaryProps> = ({ records, tags, isT
                           markerObj[loc.name] = { name: loc.name, lat: loc.lat, lng: loc.lng, type: '地点' };
                         }
                       });
+                      // Add hotel markers from extra_data
+                      (extra.hotels || []).forEach(hotel => {
+                        if (hotel.lat && hotel.lng && hotel.name && !markerObj[hotel.name]) {
+                          markerObj[hotel.name] = { name: hotel.name, lat: hotel.lat, lng: hotel.lng, type: '酒店', detail: hotel.address || '' };
+                        }
+                      });
+
                       const markers = Object.values(markerObj);
                       if (markers.length === 0) return;
 
@@ -1322,7 +1329,8 @@ export const TravelSummary: React.FC<TravelSummaryProps> = ({ records, tags, isT
                         '景点': { bg: 'linear-gradient(135deg,#10b981,#059669)', border: '#059669', emoji: '📍' },
                         '美食': { bg: 'linear-gradient(135deg,#f59e0b,#ea580c)', border: '#ea580c', emoji: '🍜' },
                         '剧场': { bg: 'linear-gradient(135deg,#8b5cf6,#7c3aed)', border: '#7c3aed', emoji: '🎭' },
-                        '地点': { bg: 'linear-gradient(135deg,#3b82f6,#2563eb)', border: '#2563eb', emoji: '📌' },
+                        '酒店': { bg: 'linear-gradient(135deg,#3b82f6,#2563eb)', border: '#2563eb', emoji: '🏨' },
+                        '地点': { bg: 'linear-gradient(135deg,#6b7280,#4b5563)', border: '#4b5563', emoji: '📌' },
                       };
 
                       rowItems.push(

@@ -245,6 +245,22 @@ export function RecordModal({
   const travelAttractionAcRef = useRef<any>(null);
   const blockTravelSuggestRef = useRef<boolean>(false);
 
+  // Transport & Hotel states
+  const [travelTransportExpanded, setTravelTransportExpanded] = useState(false);
+  const [travelRailways, setTravelRailways] = useState<{trainNo: string; seat: string}[]>([{trainNo: '', seat: ''}]);
+  const [travelFlights, setTravelFlights] = useState<{airline: string; flightNo: string; departAirport: string; arriveAirport: string}[]>([{airline: '', flightNo: '', departAirport: '', arriveAirport: ''}]);
+  const [travelHotels, setTravelHotels] = useState<{name: string; lat?: number; lng?: number; address?: string; poiId?: string}[]>([]);
+  const [travelHotelInput, setTravelHotelInput] = useState('');
+  const [travelHotelSuggestions, setTravelHotelSuggestions] = useState<any[]>([]);
+  const [showTravelHotelSuggestions, setShowTravelHotelSuggestions] = useState(false);
+  const [travelHotelCity, setTravelHotelCity] = useState('');
+  const [travelHotelProvince, setTravelHotelProvince] = useState('');
+  const travelHotelAcRef = useRef<any>(null);
+  const blockTravelHotelSuggestRef = useRef<boolean>(false);
+  // Airport autocomplete state
+  const [airportSuggestions, setAirportSuggestions] = useState<{idx: number; field: 'departAirport'|'arriveAirport'; pois: any[]}|null>(null);
+  const travelAirportAcRef = useRef<any>(null);
+
   // Defensive arrays
   const safeTags = tags || [];
   const safeRecords = records || [];
@@ -312,6 +328,11 @@ export function RecordModal({
             setTravelSimpleTotal(tExtra?.totalSpend ? String(tExtra.totalSpend) : '');
             setTravelAttractions(tExtra?.attractions || []);
             setTravelLinkedRecordIds(tExtra?.linkedRecordIds || []);
+            // Load Transport & Hotel
+            setTravelRailways(tExtra?.railways?.length ? tExtra.railways.map(r => ({ trainNo: r.trainNo || '', seat: r.seat || '' })) : [{trainNo: '', seat: ''}]);
+            setTravelFlights(tExtra?.flights?.length ? tExtra.flights.map(f => ({ airline: f.airline || '', flightNo: f.flightNo || '', departAirport: f.departAirport || '', arriveAirport: f.arriveAirport || '' })) : [{airline: '', flightNo: '', departAirport: '', arriveAirport: ''}]);
+            setTravelHotels(tExtra?.hotels || []);
+            setTravelTransportExpanded(!!(tExtra?.railways?.length || tExtra?.flights?.length || tExtra?.hotels?.length));
           } else {
             setTravelEndDate('');
             setTravelDestinations([]);
@@ -375,6 +396,10 @@ export function RecordModal({
         setFoodPrice('');
         setFoodRating(0);
         setFoodDishes([{ name: '', rating: 0 }]);
+        setFoodProvince('');
+        setFoodCity('全国');
+        setFoodLat(undefined);
+        setFoodLng(undefined);
 
         // Reset Travel States
         setTravelEndDate('');
@@ -388,6 +413,14 @@ export function RecordModal({
         setTravelLinkedRecordIds([]);
         setTravelAttractionInput('');
         setTravelAttractionCity('');
+        // Reset Transport & Hotel
+        setTravelTransportExpanded(false);
+        setTravelRailways([{trainNo: '', seat: ''}]);
+        setTravelFlights([{airline: '', flightNo: '', departAirport: '', arriveAirport: ''}]);
+        setTravelHotels([]);
+        setTravelHotelInput('');
+        setTravelHotelCity('');
+        setTravelHotelProvince('');
         setTravelAttractionProvince('');
 
         setActiveTab('general');
@@ -425,6 +458,18 @@ export function RecordModal({
           setFoodLat(foodExtra.lat);
           setFoodLng(foodExtra.lng);
           setFoodDishes(foodExtra.dishes?.length ? foodExtra.dishes.map(d => ({ name: d.name, rating: d.rating || 0 })) : [{ name: '', rating: 0 }]);
+          // Load food city from saved data
+          if (foodExtra.city) {
+            if (Array.isArray(foodExtra.city)) {
+              setFoodProvince(foodExtra.city[0] || '');
+              setFoodCity(foodExtra.city[1] || '');
+            } else {
+              setFoodCity(foodExtra.city);
+            }
+          } else {
+            setFoodProvince('');
+            setFoodCity('全国');
+          }
           // Load food comment into reflection
           if (foodExtra.comment) setReflection(foodExtra.comment);
         }
@@ -460,7 +505,8 @@ export function RecordModal({
         ensureTheaterTags();
       }
     }
-  }, [isOpen]); // Removed activeTab from here to prevent flickering on tab switch
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingRecord]); // Also re-run when editingRecord changes
 
   // Keep foodCityRef synced
   useEffect(() => { foodCityRef.current = foodCity; }, [foodCity]);
@@ -531,6 +577,25 @@ export function RecordModal({
               setSpecialTitle(poi.name || '');
               const initialAddress = poi.address || `${poi.district || ''}${poi.name || ''}`;
               setFoodAddress(initialAddress);
+              // Auto-detect province/city from POI data when user hasn't manually selected a city
+              if (foodCityRef.current === '全国') {
+                const pname = poi.pname || '';
+                const cname = poi.cityname || '';
+                const district = poi.district || '';
+                console.log('[POI City Debug] pname:', pname, 'cityname:', cname, 'district:', district);
+                if (pname && cname) {
+                  // PlaceSearch results have pname/cityname
+                  setFoodProvince(pname);
+                  setFoodCity(cname || pname);
+                } else if (district) {
+                  // Autocomplete tips only have district, e.g. "广东省深圳市南山区" or "北京市朝阳区"
+                  const m = district.match(/^(.+?(?:省|自治区))?\s*(.+?(?:市|自治州|地区|盟))/);
+                  if (m) {
+                    setFoodProvince(m[1] || m[2]); // 直辖市没有省
+                    setFoodCity(m[2]);
+                  }
+                }
+              }
               // Capture coordinates if available (AMap.LngLat may use methods or properties)
               // poi.location can be: AMap.LngLat object, string "lng,lat", or empty string ""
               if (poi.location && poi.location !== '' && typeof poi.location !== 'string') {
@@ -999,6 +1064,7 @@ export function RecordModal({
       content: dailyContent.trim(),
       color: selectedColor,
       completedDates: [],
+      checkinTimestamps: [],
       repeatDays: repeatDays,
       startDate: habitStartDate || undefined,
       endDate: habitEndDate || undefined,
@@ -1157,6 +1223,9 @@ export function RecordModal({
             attractions: travelAttractions.length > 0 ? travelAttractions : undefined,
             linkedRecordIds: travelLinkedRecordIds.length > 0 ? travelLinkedRecordIds : undefined,
             thought: reflection.trim() || undefined,
+            railways: (() => { const valid = travelRailways.filter(r => r.trainNo.trim()); return valid.length > 0 ? valid.map(r => ({ trainNo: r.trainNo.trim(), seat: r.seat.trim() || undefined })) : undefined; })(),
+            flights: (() => { const valid = travelFlights.filter(f => f.flightNo.trim() || f.airline.trim() || f.departAirport.trim() || f.arriveAirport.trim()); return valid.length > 0 ? valid.map(f => ({ airline: f.airline.trim(), flightNo: f.flightNo.trim(), departAirport: f.departAirport.trim(), arriveAirport: f.arriveAirport.trim() })) : undefined; })(),
+            hotels: travelHotels.length > 0 ? travelHotels : undefined,
           };
         }
 
@@ -1190,7 +1259,7 @@ export function RecordModal({
     } finally {
       setIsUploading(false);
     }
-  }, [specialTitle, selYear, selMonth, selDay, activeTab, tags, selectedTagIds, newImageFiles, existingImageUrls, reflection, editingRecord, specialColor, theaterProvince, theaterCity, theaterClub, theaterVenue, theaterType, theaterPrice, theaterScore, theaterActors, theaterUnit, theaterSeat, theaterPoiId, theaterLat, theaterLng, theaterAddress, foodAddress, foodRating, foodPrice, foodLat, foodLng, foodCity, foodProvince, foodDishes, normalProvince, normalCity, normalLocationName, normalLocationAddress, normalPoiId, normalLat, normalLng, travelDestinations, travelExpenses, travelExpenseExpanded, travelSimpleTotal, travelEndDate, travelAttractions, travelLinkedRecordIds, onUpdateRecord, onAddRecord, onClose]);
+  }, [specialTitle, selYear, selMonth, selDay, activeTab, tags, selectedTagIds, newImageFiles, existingImageUrls, reflection, editingRecord, specialColor, theaterProvince, theaterCity, theaterClub, theaterVenue, theaterType, theaterPrice, theaterScore, theaterActors, theaterUnit, theaterSeat, theaterPoiId, theaterLat, theaterLng, theaterAddress, foodAddress, foodRating, foodPrice, foodLat, foodLng, foodCity, foodProvince, foodDishes, normalProvince, normalCity, normalLocationName, normalLocationAddress, normalPoiId, normalLat, normalLng, travelDestinations, travelExpenses, travelExpenseExpanded, travelSimpleTotal, travelEndDate, travelAttractions, travelLinkedRecordIds, travelRailways, travelFlights, travelHotels, onUpdateRecord, onAddRecord, onClose]);
 
   const handleAddNewTag = useCallback(async () => {
     if (newTagName.trim()) {
@@ -2543,6 +2612,226 @@ export function RecordModal({
                             )}
                           </div>
                         )}
+                     </div>
+
+                     {/* ── Transport & Hotel Card ── */}
+                     <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/40">
+                       <button
+                         type="button"
+                         onClick={() => setTravelTransportExpanded(prev => !prev)}
+                         className="w-full flex items-center justify-between px-3 py-2 bg-emerald-100/60 dark:bg-emerald-800/20 hover:bg-emerald-100/80 dark:hover:bg-emerald-800/30 transition-colors rounded-t-xl"
+                       >
+                         <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                           🧳 交通与住宿 <span className="font-normal text-emerald-500/60 dark:text-emerald-400/50">(可选)</span>
+                         </span>
+                         <span className="text-emerald-500 dark:text-emerald-400 text-[10px] font-bold">
+                           {travelTransportExpanded ? '▲' : '▼'}
+                         </span>
+                       </button>
+
+                       {travelTransportExpanded && (
+                         <div className="bg-emerald-50/30 dark:bg-emerald-900/10 p-3 space-y-4">
+
+                           {/* ── Railway Section ── */}
+                           <div className="space-y-1.5">
+                             <div className="flex items-center justify-between">
+                               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">🚄 铁路</span>
+                               <button type="button" onClick={() => setTravelRailways(prev => [...prev, {trainNo: '', seat: ''}])} className="text-emerald-500 hover:text-emerald-700 text-xs font-bold">+ 添加</button>
+                             </div>
+                             {travelRailways.map((r, i) => (
+                               <div key={i} className="flex gap-2 items-center">
+                                 <input type="text" value={r.trainNo} onChange={e => { const arr = [...travelRailways]; arr[i] = {...arr[i], trainNo: e.target.value}; setTravelRailways(arr); }} placeholder="车次" className="flex-1 px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
+                                 <input type="text" value={r.seat} onChange={e => { const arr = [...travelRailways]; arr[i] = {...arr[i], seat: e.target.value}; setTravelRailways(arr); }} placeholder="坐席" className="flex-1 px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
+                                 {travelRailways.length > 1 && (
+                                   <button type="button" onClick={() => setTravelRailways(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600 text-xs shrink-0">×</button>
+                                 )}
+                               </div>
+                             ))}
+                           </div>
+
+                           {/* ── Aviation Section ── */}
+                           <div className="space-y-1.5">
+                             <div className="flex items-center justify-between">
+                               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">✈️ 航空</span>
+                               <button type="button" onClick={() => setTravelFlights(prev => [...prev, {airline: '', flightNo: '', departAirport: '', arriveAirport: ''}])} className="text-emerald-500 hover:text-emerald-700 text-xs font-bold">+ 添加</button>
+                             </div>
+                             {travelFlights.map((f, i) => (
+                               <div key={i} className="space-y-1.5">
+                                 <div className="flex gap-2 items-center">
+                                   <input type="text" value={f.airline} onChange={e => { const arr = [...travelFlights]; arr[i] = {...arr[i], airline: e.target.value}; setTravelFlights(arr); }} placeholder="航司" className="w-20 px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
+                                   <input type="text" value={f.flightNo} onChange={e => { const arr = [...travelFlights]; arr[i] = {...arr[i], flightNo: e.target.value}; setTravelFlights(arr); }} placeholder="航班号" className="flex-1 px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
+                                   {travelFlights.length > 1 && (
+                                     <button type="button" onClick={() => setTravelFlights(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600 text-xs shrink-0">×</button>
+                                   )}
+                                 </div>
+                                 <div className="flex gap-2 items-center">
+                                   {/* Departure airport with AMap autocomplete */}
+                                   <div className="flex-1 relative">
+                                     <input type="text" value={f.departAirport} onChange={e => {
+                                       const val = e.target.value;
+                                       const arr = [...travelFlights]; arr[i] = {...arr[i], departAirport: val}; setTravelFlights(arr);
+                                       if (val.trim().length >= 2) {
+                                         if (!travelAirportAcRef.current) {
+                                           (window as any).AMap?.plugin('AMap.PlaceSearch', () => { travelAirportAcRef.current = new (window as any).AMap.PlaceSearch({ pageSize: 5, type: '150104|150100' }); });
+                                         }
+                                         setTimeout(() => {
+                                           travelAirportAcRef.current?.search(val, (status: string, result: any) => {
+                                             if (status === 'complete' && result.poiList?.pois) setAirportSuggestions({idx: i, field: 'departAirport', pois: result.poiList.pois.slice(0, 5)});
+                                           });
+                                         }, 100);
+                                       } else { setAirportSuggestions(null); }
+                                     }} placeholder="出发机场" className="w-full px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
+                                     {airportSuggestions && airportSuggestions.idx === i && airportSuggestions.field === 'departAirport' && airportSuggestions.pois.length > 0 && (
+                                       <div className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-40 overflow-y-auto">
+                                         {airportSuggestions.pois.map((poi: any, idx: number) => (
+                                           <button key={idx} type="button" className="w-full text-left px-3 py-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                                             onClick={() => { const arr = [...travelFlights]; arr[i] = {...arr[i], departAirport: poi.name || ''}; setTravelFlights(arr); setAirportSuggestions(null); }}>
+                                             <div className="text-sm font-bold text-gray-700 dark:text-gray-200">{poi.name}</div>
+                                             {poi.address && <div className="text-[10px] text-gray-400 truncate">{poi.address}</div>}
+                                           </button>
+                                         ))}
+                                       </div>
+                                     )}
+                                   </div>
+                                   <span className="text-gray-400 text-xs font-bold shrink-0">→</span>
+                                   {/* Arrival airport with AMap autocomplete */}
+                                   <div className="flex-1 relative">
+                                     <input type="text" value={f.arriveAirport} onChange={e => {
+                                       const val = e.target.value;
+                                       const arr = [...travelFlights]; arr[i] = {...arr[i], arriveAirport: val}; setTravelFlights(arr);
+                                       if (val.trim().length >= 2) {
+                                         if (!travelAirportAcRef.current) {
+                                           (window as any).AMap?.plugin('AMap.PlaceSearch', () => { travelAirportAcRef.current = new (window as any).AMap.PlaceSearch({ pageSize: 5, type: '150104|150100' }); });
+                                         }
+                                         setTimeout(() => {
+                                           travelAirportAcRef.current?.search(val, (status: string, result: any) => {
+                                             if (status === 'complete' && result.poiList?.pois) setAirportSuggestions({idx: i, field: 'arriveAirport', pois: result.poiList.pois.slice(0, 5)});
+                                           });
+                                         }, 100);
+                                       } else { setAirportSuggestions(null); }
+                                     }} placeholder="到达机场" className="w-full px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
+                                     {airportSuggestions && airportSuggestions.idx === i && airportSuggestions.field === 'arriveAirport' && airportSuggestions.pois.length > 0 && (
+                                       <div className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-40 overflow-y-auto">
+                                         {airportSuggestions.pois.map((poi: any, idx: number) => (
+                                           <button key={idx} type="button" className="w-full text-left px-3 py-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                                             onClick={() => { const arr = [...travelFlights]; arr[i] = {...arr[i], arriveAirport: poi.name || ''}; setTravelFlights(arr); setAirportSuggestions(null); }}>
+                                             <div className="text-sm font-bold text-gray-700 dark:text-gray-200">{poi.name}</div>
+                                             {poi.address && <div className="text-[10px] text-gray-400 truncate">{poi.address}</div>}
+                                           </button>
+                                         ))}
+                                       </div>
+                                     )}
+                                   </div>
+                                 </div>
+                               </div>
+                             ))}
+                           </div>
+
+                           {/* ── Hotel Section ── */}
+                           <div className="space-y-1.5">
+                             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">🏨 酒店</span>
+                             {/* Hotel chips */}
+                             {travelHotels.length > 0 && (
+                               <div className="flex flex-wrap gap-1.5 mb-1">
+                                 {travelHotels.map((h, i) => (
+                                   <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold">
+                                     {h.name}
+                                     <button type="button" onClick={() => setTravelHotels(prev => prev.filter((_, idx) => idx !== i))} className="text-blue-400 hover:text-red-500 transition-colors">×</button>
+                                   </span>
+                                 ))}
+                               </div>
+                             )}
+                             {/* City selector + auto-locate */}
+                             <div className="flex gap-2 items-center">
+                               <select value={travelHotelProvince} onChange={e => { setTravelHotelProvince(e.target.value); setTravelHotelCity(''); }} className="w-24 px-1.5 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-xs text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400">
+                                 <option value="">省份</option>
+                                 {provinceData.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+                               </select>
+                               <select value={travelHotelCity} onChange={e => setTravelHotelCity(e.target.value)} className="w-24 px-1.5 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-xs text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400">
+                                 <option value="">城市</option>
+                                 {(provinceData.find(p => p.name === travelHotelProvince)?.cities || []).map(c => <option key={c} value={c}>{c}</option>)}
+                               </select>
+                               <button type="button" onClick={() => {
+                                 if (!(window as any).AMap) return;
+                                 const AMap = (window as any).AMap;
+                                 const cs = new AMap.CitySearch();
+                                 cs.getLocalCity((status: string, result: any) => {
+                                   if (status === 'complete' && result.info === 'OK') {
+                                     setTravelHotelProvince(result.province);
+                                     setTravelHotelCity(result.city);
+                                   }
+                                 });
+                               }} className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 transition-colors shrink-0" title="自动定位">
+                                 <LocateFixed size={14} />
+                               </button>
+                             </div>
+                             {/* Hotel search */}
+                             <div className="relative">
+                               <input
+                                 type="text"
+                                 value={travelHotelInput}
+                                 onChange={e => {
+                                   const val = e.target.value;
+                                   setTravelHotelInput(val);
+                                   blockTravelHotelSuggestRef.current = false;
+                                   if (val.trim().length >= 2) {
+                                     const cityParam = travelHotelCity || (travelDestinations.length > 0 ? travelDestinations[0] : '');
+                                     if (!travelHotelAcRef.current || (travelHotelAcRef.current as any).__city !== cityParam) {
+                                       (window as any).AMap?.plugin('AMap.PlaceSearch', () => {
+                                         travelHotelAcRef.current = new (window as any).AMap.PlaceSearch({
+                                           pageSize: 5, city: cityParam || '', citylimit: !!cityParam,
+                                           type: '100000|100100', // Hotel types
+                                         });
+                                         (travelHotelAcRef.current as any).__city = cityParam;
+                                       });
+                                     }
+                                     setTimeout(() => {
+                                       if (travelHotelAcRef.current && !blockTravelHotelSuggestRef.current) {
+                                         travelHotelAcRef.current.search(val, (status: string, result: any) => {
+                                           if (status === 'complete' && result.poiList?.pois) {
+                                             setTravelHotelSuggestions(result.poiList.pois.slice(0, 5));
+                                             setShowTravelHotelSuggestions(true);
+                                           }
+                                         });
+                                       }
+                                     }, 100);
+                                   } else {
+                                     setTravelHotelSuggestions([]);
+                                     setShowTravelHotelSuggestions(false);
+                                   }
+                                 }}
+                                 placeholder={(() => {
+                                   const c = travelHotelCity || (travelDestinations.length > 0 ? travelDestinations[0] : '');
+                                   return c ? `在${c}搜索酒店…` : '搜索酒店…';
+                                 })()}
+                                 className="w-full px-3 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300"
+                               />
+                               {showTravelHotelSuggestions && travelHotelSuggestions.length > 0 && (
+                                 <div className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                   {travelHotelSuggestions.map((poi: any, idx: number) => {
+                                     const lat = poi.location?.getLat ? poi.location.getLat() : poi.location?.lat;
+                                     const lng = poi.location?.getLng ? poi.location.getLng() : poi.location?.lng;
+                                     return (
+                                       <button key={idx} type="button" className="w-full text-left px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                                         onClick={() => {
+                                           setTravelHotels(prev => [...prev, { name: poi.name || '', lat, lng, address: poi.address || '', poiId: poi.id || '' }]);
+                                           setTravelHotelInput('');
+                                           setShowTravelHotelSuggestions(false);
+                                           setTravelHotelSuggestions([]);
+                                           blockTravelHotelSuggestRef.current = true;
+                                         }}>
+                                         <div className="text-sm font-bold text-gray-700 dark:text-gray-200">{poi.name}</div>
+                                         {poi.address && <div className="text-[10px] text-gray-400 truncate">{poi.address}</div>}
+                                       </button>
+                                     );
+                                   })}
+                                 </div>
+                               )}
+                             </div>
+                           </div>
+
+                         </div>
+                       )}
                      </div>
 
                     {/* Attractions — domestic only */}

@@ -50,6 +50,26 @@ export interface TravelAttraction {
   address?: string;
 }
 
+export interface RailwayEntry {
+  trainNo: string;
+  seat?: string;
+}
+
+export interface FlightEntry {
+  airline: string;
+  flightNo: string;
+  departAirport: string;
+  arriveAirport: string;
+}
+
+export interface HotelEntry {
+  name: string;
+  lat?: number;
+  lng?: number;
+  address?: string;
+  poiId?: string;
+}
+
 export interface TravelExpenseItem {
   name: string;   // e.g. "高铁票"
   amount: number; // price
@@ -73,6 +93,9 @@ export interface TravelMetadata {
   attractions?: TravelAttraction[];
   linkedRecordIds?: string[];
   thought?: string;
+  railways?: RailwayEntry[];
+  flights?: FlightEntry[];
+  hotels?: HotelEntry[];
 }
 
 export interface BaseRecord {

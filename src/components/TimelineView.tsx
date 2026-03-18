@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, memo } from 'react';
-import { MapPin, Ticket, Clock, Edit3, Users, Building2, Utensils, Sticker, Theater, UtensilsCrossed, Search, CalendarSearch, X, Palmtree, Landmark } from 'lucide-react';
+import { MapPin, Ticket, Clock, Edit3, Users, Building2, Utensils, Sticker, Theater, UtensilsCrossed, Search, CalendarSearch, X, Palmtree, Landmark, TrainFront, Plane, Hotel } from 'lucide-react';
 import type { EventRecord, TheaterMetadata, FoodMetadata, TravelMetadata } from '../types';
 
 interface TimelineViewProps {
@@ -458,8 +458,29 @@ function TimelineViewInner({
                               </div>
 
                               {/* Travel metadata panel — only show if there's content */}
-                              {((extra.destinations && extra.destinations.length > 0) || extra.totalSpend || (extra.attractions && extra.attractions.length > 0)) && (
+                              {((extra.destinations && extra.destinations.length > 0) || extra.totalSpend || (extra.attractions && extra.attractions.length > 0) || (extra.railways && extra.railways.length > 0) || (extra.flights && extra.flights.length > 0) || (extra.hotels && extra.hotels.length > 0)) && (
                               <div className="mt-3 flex flex-col gap-1.5 py-3 px-4 bg-emerald-50/40 dark:bg-emerald-900/10 rounded-lg border border-emerald-100/50 dark:border-emerald-800/30">
+                                {/* Railway rows */}
+                                {extra.railways && extra.railways.filter(r => r.trainNo).length > 0 && (
+                                  <div className="flex items-start gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                                    <div className="w-3.5 flex justify-center shrink-0 mt-0.5"><TrainFront size={12} /></div>
+                                    <span className="flex-1">{extra.railways.filter(r => r.trainNo).map(r => `${r.trainNo}${r.seat ? ' ' + r.seat : ''}`).join(' | ')}</span>
+                                  </div>
+                                )}
+                                {/* Flight rows */}
+                                {extra.flights && extra.flights.filter(f => f.flightNo || f.airline).length > 0 && (
+                                  <div className="flex items-start gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                                    <div className="w-3.5 flex justify-center shrink-0 mt-0.5"><Plane size={12} /></div>
+                                    <span className="flex-1">{extra.flights.filter(f => f.flightNo || f.airline).map(f => `${f.airline} ${f.flightNo}${f.departAirport && f.arriveAirport ? ' ' + f.departAirport + '→' + f.arriveAirport : ''}`).join(' | ')}</span>
+                                  </div>
+                                )}
+                                {/* Hotel rows */}
+                                {extra.hotels && extra.hotels.filter(h => h.name).length > 0 && (
+                                  <div className="flex items-start gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                                    <div className="w-3.5 flex justify-center shrink-0 mt-0.5"><Hotel size={12} /></div>
+                                    <span className="flex-1">{extra.hotels.map(h => h.name).join(' | ')}</span>
+                                  </div>
+                                )}
                                 {extra.destinations && extra.destinations.length > 0 && (
                                   <div className="flex items-start gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
                                     <div className="w-3.5 flex justify-center shrink-0 mt-0.5"><MapPin size={12} /></div>

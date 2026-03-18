@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Pencil, Trash2, ChevronDown, ChevronRight, ChevronUp, CheckSquare, Square, Theater, Utensils, Palmtree, FileText } from 'lucide-react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { Pencil, Trash2, ChevronDown, ChevronRight, ChevronUp, CheckSquare, Square, Theater, Utensils, Palmtree, FileText, Settings2 } from 'lucide-react';
 import type { CalendarRecord, EventRecord, TheaterMetadata, FoodMetadata, TravelMetadata } from '../types';
 
 interface TableViewProps {
@@ -74,7 +74,7 @@ const renderStars = (score: number, color: string) => (
 interface FieldDef { label: string; value: string | React.ReactNode }
 
 function getNormalFields(r: EventRecord): FieldDef[] {
-  const loc = (r.extra_data as any)?.location_data;
+  const loc = (r.extra_data as any)?.location;
   return [
     { label: '日期', value: r.dateStr },
     { label: '标签', value: r.tag_names?.filter(n => !['普通模式'].includes(n)).join(', ') || '-' },
@@ -135,87 +135,158 @@ const fieldGetters: Record<string, (r: EventRecord) => FieldDef[]> = {
 /* ──────── Parent tags to exclude from sub-tag display ──────── */
 const PARENT_TAGS = new Set(['普通模式', '演出模式', '美食模式', '旅行模式']);
 
-/* ──────── Desktop Table Column Renderers ──────── */
-const columnHeaders: Record<string, string[]> = {
-  normal: ['标题', '日期', '标签', '地点', '感想', '图片'],
-  food: ['标题', '日期', '标签', '餐厅', '评分', '人均/总价', '菜品', '感想', '图片'],
-  theater: ['标题', '日期', '标签', '城市', '剧场', '类型', '评分', '票价', '座位', '演员', '感想', '图片'],
-  travel: ['标题', '开始日期', '结束日期', '天数', '标签', '目的地', '总支出', '景点', '感想', '图片'],
+/* ──────── Data-Driven Column Definitions ──────── */
+interface ColumnDef {
+  key: string;
+  label: string;
+  defaultOn: boolean;
+  render: (r: EventRecord) => React.ReactNode;
+  sortValue: (r: EventRecord) => string | number;
+  titleStyle?: boolean; // if true, render with bold title styling
+}
+
+const TD = 'px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400';
+const TD_TITLE = 'px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-gray-100 truncate max-w-[200px]';
+
+const ALL_COLUMNS: Record<string, ColumnDef[]> = {
+  normal: [
+    { key: '标题', label: '标题', defaultOn: true, titleStyle: true,
+      render: r => <td className={TD_TITLE}>{r.title}</td>,
+      sortValue: r => r.title || '' },
+    { key: '日期', label: '日期', defaultOn: true,
+      render: r => <td className={TD}>{r.dateStr}</td>,
+      sortValue: r => r.dateStr || '' },
+    { key: '标签', label: '标签', defaultOn: true,
+      render: r => <td className={`${TD} truncate max-w-[100px]`}>{r.tag_names?.filter(n => n !== '普通模式').join(', ') || '-'}</td>,
+      sortValue: r => r.tag_names?.filter(n => n !== '普通模式').join(', ') || '' },
+    { key: '地点', label: '地点', defaultOn: true,
+      render: r => { const loc = (r.extra_data as any)?.location; return <td className={`${TD} truncate max-w-[150px]`}>{loc?.name || loc?.address || '-'}</td>; },
+      sortValue: r => (r.extra_data as any)?.location?.name || (r.extra_data as any)?.location?.address || '' },
+    { key: '感想', label: '感想', defaultOn: true,
+      render: r => <td className={`${TD} truncate max-w-[150px]`}>{(r as any).reflection || '-'}</td>,
+      sortValue: r => (r as any).reflection || '' },
+    { key: '图片', label: '图片', defaultOn: true,
+      render: r => <td className={TD}>{r.imageUrls?.length > 0 ? `${r.imageUrls.length}张` : '-'}</td>,
+      sortValue: r => r.imageUrls?.length || 0 },
+  ],
+  food: [
+    { key: '标题', label: '标题', defaultOn: true, titleStyle: true,
+      render: r => <td className={TD_TITLE}>{r.title}</td>,
+      sortValue: r => r.title || '' },
+    { key: '日期', label: '日期', defaultOn: true,
+      render: r => <td className={TD}>{r.dateStr}</td>,
+      sortValue: r => r.dateStr || '' },
+    { key: '标签', label: '标签', defaultOn: true,
+      render: r => <td className={`${TD} truncate max-w-[100px]`}>{r.tag_names?.filter(n => !PARENT_TAGS.has(n)).join(', ') || '-'}</td>,
+      sortValue: r => r.tag_names?.filter(n => !PARENT_TAGS.has(n)).join(', ') || '' },
+    { key: '餐厅', label: '餐厅', defaultOn: true,
+      render: r => { const fd = r.extra_data as FoodMetadata | undefined; return <td className={`${TD} truncate max-w-[120px]`}>{fd?.restaurant || '-'}</td>; },
+      sortValue: r => (r.extra_data as FoodMetadata | undefined)?.restaurant || '' },
+    { key: '城市', label: '城市', defaultOn: false,
+      render: r => { const fd = r.extra_data as FoodMetadata | undefined; return <td className={`${TD} truncate max-w-[80px]`}>{Array.isArray(fd?.city) ? fd!.city.join(' ') : fd?.city || '-'}</td>; },
+      sortValue: r => { const fd = r.extra_data as FoodMetadata | undefined; return Array.isArray(fd?.city) ? fd!.city.join(' ') : fd?.city || ''; } },
+    { key: '评分', label: '评分', defaultOn: true,
+      render: r => { const fd = r.extra_data as FoodMetadata | undefined; return <td className="px-3 py-2.5 text-xs">{fd?.rating ? renderStars(fd.rating, '#f59e0b') : '-'}</td>; },
+      sortValue: r => (r.extra_data as FoodMetadata | undefined)?.rating || 0 },
+    { key: '人均/总价', label: '人均/总价', defaultOn: true,
+      render: r => { const fd = r.extra_data as FoodMetadata | undefined; return <td className={TD}>{fd?.price ? `¥${fd.price}` : '-'}</td>; },
+      sortValue: r => (r.extra_data as FoodMetadata | undefined)?.price || 0 },
+    { key: '菜品', label: '菜品', defaultOn: true,
+      render: r => { const fd = r.extra_data as FoodMetadata | undefined; return <td className={`${TD} truncate max-w-[150px]`}>{fd?.dishes?.map(d => d.name).join(', ') || '-'}</td>; },
+      sortValue: r => (r.extra_data as FoodMetadata | undefined)?.dishes?.map(d => d.name).join(', ') || '' },
+    { key: '地址', label: '地址', defaultOn: false,
+      render: r => { const fd = r.extra_data as FoodMetadata | undefined; return <td className={`${TD} truncate max-w-[150px]`}>{fd?.address || '-'}</td>; },
+      sortValue: r => (r.extra_data as FoodMetadata | undefined)?.address || '' },
+    { key: '感想', label: '感想', defaultOn: true,
+      render: r => { const fd = r.extra_data as FoodMetadata | undefined; return <td className={`${TD} truncate max-w-[120px]`}>{fd?.comment || '-'}</td>; },
+      sortValue: r => (r.extra_data as FoodMetadata | undefined)?.comment || '' },
+    { key: '图片', label: '图片', defaultOn: true,
+      render: r => <td className={TD}>{r.imageUrls?.length > 0 ? `${r.imageUrls.length}张` : '-'}</td>,
+      sortValue: r => r.imageUrls?.length || 0 },
+  ],
+  theater: [
+    { key: '标题', label: '标题', defaultOn: true, titleStyle: true,
+      render: r => <td className={TD_TITLE}>{r.title}</td>,
+      sortValue: r => r.title || '' },
+    { key: '日期', label: '日期', defaultOn: true,
+      render: r => <td className={TD}>{r.dateStr}</td>,
+      sortValue: r => r.dateStr || '' },
+    { key: '标签', label: '标签', defaultOn: true,
+      render: r => <td className={`${TD} truncate max-w-[100px]`}>{r.tag_names?.filter(n => !PARENT_TAGS.has(n)).join(', ') || '-'}</td>,
+      sortValue: r => r.tag_names?.filter(n => !PARENT_TAGS.has(n)).join(', ') || '' },
+    { key: '城市', label: '城市', defaultOn: true,
+      render: r => { const td = r.extra_data as TheaterMetadata | undefined; return <td className={`${TD} truncate max-w-[80px]`}>{Array.isArray(td?.city) ? td!.city.join(' ') : td?.city || '-'}</td>; },
+      sortValue: r => { const td = r.extra_data as TheaterMetadata | undefined; return Array.isArray(td?.city) ? td!.city.join(' ') : td?.city || ''; } },
+    { key: '剧场', label: '剧场', defaultOn: true,
+      render: r => { const td = r.extra_data as TheaterMetadata | undefined; return <td className={`${TD} truncate max-w-[100px]`}>{td?.theater || '-'}</td>; },
+      sortValue: r => (r.extra_data as TheaterMetadata | undefined)?.theater || '' },
+    { key: '类型', label: '类型', defaultOn: true,
+      render: r => { const td = r.extra_data as TheaterMetadata | undefined; return <td className={TD}>{td?.type || '-'}</td>; },
+      sortValue: r => (r.extra_data as TheaterMetadata | undefined)?.type || '' },
+    { key: '评分', label: '评分', defaultOn: true,
+      render: r => { const td = r.extra_data as TheaterMetadata | undefined; return <td className="px-3 py-2.5 text-xs">{td?.score ? renderStars(td.score, '#8b5cf6') : '-'}</td>; },
+      sortValue: r => (r.extra_data as TheaterMetadata | undefined)?.score || 0 },
+    { key: '票价', label: '票价', defaultOn: true,
+      render: r => { const td = r.extra_data as TheaterMetadata | undefined; return <td className={TD}>{td?.price ? `¥${td.price}` : '-'}</td>; },
+      sortValue: r => (r.extra_data as TheaterMetadata | undefined)?.price || 0 },
+    { key: '座位', label: '座位', defaultOn: true,
+      render: r => { const td = r.extra_data as TheaterMetadata | undefined; return <td className={`${TD} truncate max-w-[80px]`}>{td?.seat || '-'}</td>; },
+      sortValue: r => (r.extra_data as TheaterMetadata | undefined)?.seat || '' },
+    { key: '演员', label: '演员', defaultOn: true,
+      render: r => { const td = r.extra_data as TheaterMetadata | undefined; return <td className={`${TD} truncate max-w-[120px]`}>{td?.actors || '-'}</td>; },
+      sortValue: r => (r.extra_data as TheaterMetadata | undefined)?.actors || '' },
+    { key: '感想', label: '感想', defaultOn: true,
+      render: r => { const td = r.extra_data as TheaterMetadata | undefined; return <td className={`${TD} truncate max-w-[150px]`}>{td?.thought || '-'}</td>; },
+      sortValue: r => (r.extra_data as TheaterMetadata | undefined)?.thought || '' },
+    { key: '图片', label: '图片', defaultOn: true,
+      render: r => <td className={TD}>{r.imageUrls?.length > 0 ? `${r.imageUrls.length}张` : '-'}</td>,
+      sortValue: r => r.imageUrls?.length || 0 },
+  ],
+  travel: [
+    { key: '标题', label: '标题', defaultOn: true, titleStyle: true,
+      render: r => <td className={TD_TITLE}>{r.title}</td>,
+      sortValue: r => r.title || '' },
+    { key: '开始日期', label: '开始日期', defaultOn: true,
+      render: r => { const tv = r.extra_data as TravelMetadata | undefined; return <td className={TD}>{tv?.startDate || '-'}</td>; },
+      sortValue: r => (r.extra_data as TravelMetadata | undefined)?.startDate || '' },
+    { key: '结束日期', label: '结束日期', defaultOn: true,
+      render: r => { const tv = r.extra_data as TravelMetadata | undefined; return <td className={TD}>{tv?.endDate || '-'}</td>; },
+      sortValue: r => (r.extra_data as TravelMetadata | undefined)?.endDate || '' },
+    { key: '天数', label: '天数', defaultOn: true,
+      render: r => { const tv = r.extra_data as TravelMetadata | undefined; const d = tv?.startDate && tv?.endDate ? Math.ceil((new Date(tv.endDate).getTime() - new Date(tv.startDate).getTime()) / 86400000) + 1 : '-'; return <td className={TD}>{d}天</td>; },
+      sortValue: r => { const tv = r.extra_data as TravelMetadata | undefined; if (!tv?.startDate || !tv?.endDate) return 0; return Math.ceil((new Date(tv.endDate).getTime() - new Date(tv.startDate).getTime()) / 86400000) + 1; } },
+    { key: '标签', label: '标签', defaultOn: true,
+      render: r => <td className={`${TD} truncate max-w-[100px]`}>{r.tag_names?.filter(n => !PARENT_TAGS.has(n)).join(', ') || '-'}</td>,
+      sortValue: r => r.tag_names?.filter(n => !PARENT_TAGS.has(n)).join(', ') || '' },
+    { key: '目的地', label: '目的地', defaultOn: true,
+      render: r => { const tv = r.extra_data as TravelMetadata | undefined; return <td className={`${TD} truncate max-w-[120px]`}>{tv?.destinations?.join(', ') || '-'}</td>; },
+      sortValue: r => (r.extra_data as TravelMetadata | undefined)?.destinations?.join(', ') || '' },
+    { key: '总支出', label: '总支出', defaultOn: true,
+      render: r => { const tv = r.extra_data as TravelMetadata | undefined; return <td className={TD}>{tv?.totalSpend ? `¥${parseFloat(Number(tv.totalSpend).toFixed(2)).toLocaleString()}` : '-'}</td>; },
+      sortValue: r => (r.extra_data as TravelMetadata | undefined)?.totalSpend || 0 },
+    { key: '景点', label: '景点', defaultOn: true,
+      render: r => { const tv = r.extra_data as TravelMetadata | undefined; return <td className={`${TD} truncate max-w-[150px]`}>{tv?.attractions?.map(a => a.name).join(', ') || '-'}</td>; },
+      sortValue: r => (r.extra_data as TravelMetadata | undefined)?.attractions?.map(a => a.name).join(', ') || '' },
+    { key: '交通', label: '交通', defaultOn: false,
+      render: r => { const tv = r.extra_data as TravelMetadata | undefined; const parts: string[] = []; (tv?.railways || []).forEach(rl => { if (rl.trainNo) parts.push(`${rl.trainNo}${rl.seat ? ' ' + rl.seat : ''}`); }); (tv?.flights || []).forEach(fl => { if (fl.flightNo || fl.airline) parts.push(`${fl.airline} ${fl.flightNo}`); }); return <td className={`${TD} truncate max-w-[150px]`}>{parts.length > 0 ? parts.join(', ') : '-'}</td>; },
+      sortValue: r => { const tv = r.extra_data as TravelMetadata | undefined; return [...(tv?.railways || []).map(rl => rl.trainNo), ...(tv?.flights || []).map(fl => fl.flightNo)].join(', '); } },
+    { key: '酒店', label: '酒店', defaultOn: false,
+      render: r => { const tv = r.extra_data as TravelMetadata | undefined; return <td className={`${TD} truncate max-w-[150px]`}>{tv?.hotels?.map(h => h.name).join(', ') || '-'}</td>; },
+      sortValue: r => (r.extra_data as TravelMetadata | undefined)?.hotels?.map(h => h.name).join(', ') || '' },
+    { key: '感想', label: '感想', defaultOn: true,
+      render: r => { const tv = r.extra_data as TravelMetadata | undefined; return <td className={`${TD} truncate max-w-[150px]`}>{tv?.thought || '-'}</td>; },
+      sortValue: r => (r.extra_data as TravelMetadata | undefined)?.thought || '' },
+    { key: '图片', label: '图片', defaultOn: true,
+      render: r => <td className={TD}>{r.imageUrls?.length > 0 ? `${r.imageUrls.length}张` : '-'}</td>,
+      sortValue: r => r.imageUrls?.length || 0 },
+  ],
 };
 
-function renderNormalCols(r: EventRecord) {
-  const loc = (r.extra_data as any)?.location_data;
-  return (
-    <>
-      <td className="px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-gray-100 truncate max-w-[200px]">{r.title}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.dateStr}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[100px]">{r.tag_names?.filter(n => n !== '普通模式').join(', ') || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{loc?.name || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{(r as any).reflection || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.imageUrls?.length > 0 ? `${r.imageUrls.length}张` : '-'}</td>
-    </>
-  );
+// Build default visible columns per section
+const DEFAULT_VISIBLE: Record<string, Set<string>> = {};
+for (const [key, cols] of Object.entries(ALL_COLUMNS)) {
+  DEFAULT_VISIBLE[key] = new Set(cols.filter(c => c.defaultOn).map(c => c.key));
 }
-
-function renderFoodCols(r: EventRecord) {
-  const fd = r.extra_data as FoodMetadata | undefined;
-  return (
-    <>
-      <td className="px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-gray-100 truncate max-w-[200px]">{r.title}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.dateStr}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[100px]">{r.tag_names?.filter(n => !PARENT_TAGS.has(n)).join(', ') || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{fd?.restaurant || '-'}</td>
-      <td className="px-3 py-2.5 text-xs">{fd?.rating ? renderStars(fd.rating, '#f59e0b') : '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{fd?.price ? `¥${fd.price}` : '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{fd?.dishes?.map(d => d.name).join(', ') || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{fd?.comment || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.imageUrls?.length > 0 ? `${r.imageUrls.length}张` : '-'}</td>
-    </>
-  );
-}
-
-function renderTheaterCols(r: EventRecord) {
-  const td = r.extra_data as TheaterMetadata | undefined;
-  return (
-    <>
-      <td className="px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-gray-100 truncate max-w-[200px]">{r.title}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.dateStr}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[100px]">{r.tag_names?.filter(n => !PARENT_TAGS.has(n)).join(', ') || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[80px]">{Array.isArray(td?.city) ? td!.city.join(' ') : td?.city || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[100px]">{td?.theater || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{td?.type || '-'}</td>
-      <td className="px-3 py-2.5 text-xs">{td?.score ? renderStars(td.score, '#8b5cf6') : '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{td?.price ? `¥${td.price}` : '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[80px]">{td?.seat || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{td?.actors || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{td?.thought || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.imageUrls?.length > 0 ? `${r.imageUrls.length}张` : '-'}</td>
-    </>
-  );
-}
-
-function renderTravelCols(r: EventRecord) {
-  const tv = r.extra_data as TravelMetadata | undefined;
-  const days = tv?.startDate && tv?.endDate ? Math.ceil((new Date(tv.endDate).getTime() - new Date(tv.startDate).getTime()) / 86400000) + 1 : '-';
-  return (
-    <>
-      <td className="px-3 py-2.5 text-sm font-bold text-slate-800 dark:text-gray-100 truncate max-w-[200px]">{r.title}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{tv?.startDate || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{tv?.endDate || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{days}天</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[100px]">{r.tag_names?.filter(n => !PARENT_TAGS.has(n)).join(', ') || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{tv?.destinations?.join(', ') || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{tv?.totalSpend ? `¥${tv.totalSpend.toLocaleString()}` : '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{tv?.attractions?.map(a => a.name).join(', ') || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{tv?.thought || '-'}</td>
-      <td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.imageUrls?.length > 0 ? `${r.imageUrls.length}张` : '-'}</td>
-    </>
-  );
-}
-
-const colRenderers: Record<string, (r: EventRecord) => React.ReactNode> = {
-  normal: renderNormalCols, food: renderFoodCols, theater: renderTheaterCols, travel: renderTravelCols,
-};
 
 /* ──────── Pagination Component ──────── */
 function Pagination({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (p: number) => void }) {
@@ -250,52 +321,12 @@ function Pagination({ page, totalPages, onPageChange }: { page: number; totalPag
   );
 }
 
-/* ──────── Sort Value Extractors ──────── */
-function getSortValue(r: EventRecord, sectionKey: string, colHeader: string): string | number {
-  const fd = r.extra_data as FoodMetadata | undefined;
-  const td = r.extra_data as TheaterMetadata | undefined;
-  const tv = r.extra_data as TravelMetadata | undefined;
-  const loc = (r.extra_data as any)?.location_data;
-
-  switch (colHeader) {
-    case '标题': return r.title || '';
-    case '日期': return r.dateStr || '';
-    case '标签': return r.tag_names?.filter(n => !['普通模式'].includes(n)).join(', ') || '';
-    case '地点': return loc?.name || '';
-    case '感想':
-      if (sectionKey === 'normal') return (r as any).reflection || '';
-      if (sectionKey === 'theater') return td?.thought || '';
-      if (sectionKey === 'travel') return tv?.thought || '';
-      return '';
-    case '图片': return r.imageUrls?.length || 0;
-    case '餐厅': return fd?.restaurant || '';
-    case '城市':
-      if (sectionKey === 'food') return Array.isArray(fd?.city) ? fd!.city.join(' ') : fd?.city || '';
-      if (sectionKey === 'theater') return Array.isArray(td?.city) ? td!.city.join(' ') : td?.city || '';
-      return '';
-    case '评分':
-      if (sectionKey === 'food') return fd?.rating || 0;
-      if (sectionKey === 'theater') return td?.score || 0;
-      return 0;
-    case '人均': return fd?.price || 0;
-    case '菜品': return fd?.dishes?.map(d => d.name).join(', ') || '';
-    case '评价': return fd?.comment || '';
-    case '剧场': return td?.theater || '';
-    case '类型': return td?.type || '';
-    case '票价': return td?.price || 0;
-    case '座位': return td?.seat || '';
-    case '演员': return td?.actors || '';
-    case '开始日期': return tv?.startDate || '';
-    case '结束日期': return tv?.endDate || '';
-    case '天数': {
-      if (!tv?.startDate || !tv?.endDate) return 0;
-      return Math.ceil((new Date(tv.endDate).getTime() - new Date(tv.startDate).getTime()) / 86400000) + 1;
-    }
-    case '目的地': return tv?.destinations?.join(', ') || '';
-    case '总支出': return tv?.totalSpend || 0;
-    case '景点': return tv?.attractions?.map(a => a.name).join(', ') || '';
-    default: return '';
-  }
+/* ──────── Sort Value Extractors (via ColumnDef) ──────── */
+function getSortValue(r: EventRecord, sectionKey: string, colKey: string): string | number {
+  const cols = ALL_COLUMNS[sectionKey];
+  const col = cols?.find(c => c.key === colKey);
+  if (col) return col.sortValue(r);
+  return '';
 }
 
 interface SortState { col: string; dir: 'asc' | 'desc' }
@@ -309,6 +340,33 @@ export const TableView: React.FC<TableViewProps> = React.memo(({
   const [pages, setPages] = useState<Record<string, number>>({ normal: 1, food: 1, theater: 1, travel: 1 });
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [sortStates, setSortStates] = useState<Record<string, SortState>>({});
+  const [visibleCols, setVisibleCols] = useState<Record<string, Set<string>>>(() => {
+    const init: Record<string, Set<string>> = {};
+    for (const [key, def] of Object.entries(DEFAULT_VISIBLE)) init[key] = new Set(def);
+    return init;
+  });
+  const [colPickerOpen, setColPickerOpen] = useState<string | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Close column picker on outside click
+  useEffect(() => {
+    if (!colPickerOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setColPickerOpen(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [colPickerOpen]);
+
+  const toggleCol = useCallback((sectionKey: string, colKey: string) => {
+    setVisibleCols(prev => {
+      const s = new Set(prev[sectionKey]);
+      s.has(colKey) ? s.delete(colKey) : s.add(colKey);
+      return { ...prev, [sectionKey]: s };
+    });
+  }, []);
 
   const handleSort = useCallback((sectionKey: string, col: string) => {
     setSortStates(prev => {
@@ -400,21 +458,56 @@ export const TableView: React.FC<TableViewProps> = React.memo(({
         const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
         const pageItems = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
         const allSel = items.length > 0 && items.every(r => selected.has(r.id));
-        const headers = columnHeaders[section.key];
-        const renderRow = colRenderers[section.key];
+        const allCols = ALL_COLUMNS[section.key] || [];
+        const visCols = visibleCols[section.key] || new Set<string>();
+        const activeCols = allCols.filter(c => visCols.has(c.key));
         const getFields = fieldGetters[section.key];
 
         return (
-          <div key={section.key} className={`rounded-xl border ${section.borderColor} overflow-hidden shadow-sm bg-white dark:bg-gray-900`}>
+          <div key={section.key} className={`rounded-xl border ${section.borderColor} shadow-sm bg-white dark:bg-gray-900`}>
             {/* Section Header */}
-            <button onClick={() => toggleCollapse(section.key)}
-              className={`w-full flex items-center justify-between px-4 py-3 ${section.bgHeader} transition-colors`}>
-              <div className={`flex items-center gap-2 font-black text-sm uppercase tracking-widest ${section.textColor}`}>
-                {section.icon} {section.label}
-                <span className="text-xs font-bold opacity-60 normal-case">({items.length})</span>
+            <div className={`flex items-center justify-between px-4 py-3 rounded-t-xl ${section.bgHeader} transition-colors`}>
+              <button onClick={() => toggleCollapse(section.key)} className="flex items-center gap-2 flex-1">
+                <div className={`flex items-center gap-2 font-black text-sm uppercase tracking-widest ${section.textColor}`}>
+                  {section.icon} {section.label}
+                  <span className="text-xs font-bold opacity-60 normal-case">({items.length})</span>
+                </div>
+              </button>
+              <div className="flex items-center gap-2">
+                {/* Column Picker Toggle */}
+                {!isCollapsed && items.length > 0 && (
+                  <div className="relative" ref={colPickerOpen === section.key ? pickerRef : undefined}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setColPickerOpen(colPickerOpen === section.key ? null : section.key); }}
+                      className={`p-1.5 rounded-lg transition-all ${colPickerOpen === section.key ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                      title="选择显示列"
+                    >
+                      <Settings2 size={15} />
+                    </button>
+                    {colPickerOpen === section.key && (
+                      <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50 max-h-[300px] overflow-y-auto">
+                        <div className="px-3 py-1.5 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider">显示列</div>
+                        {allCols.map(col => (
+                          <button
+                            key={col.key}
+                            onClick={() => toggleCol(section.key, col.key)}
+                            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            {visCols.has(col.key)
+                              ? <CheckSquare size={14} className="text-blue-500 shrink-0" />
+                              : <Square size={14} className="text-gray-300 dark:text-gray-600 shrink-0" />}
+                            {col.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <button onClick={() => toggleCollapse(section.key)}>
+                  {isCollapsed ? <ChevronRight size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+                </button>
               </div>
-              {isCollapsed ? <ChevronRight size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
-            </button>
+            </div>
 
             {!isCollapsed && (
               <>
@@ -432,14 +525,14 @@ export const TableView: React.FC<TableViewProps> = React.memo(({
                                 {allSel ? <CheckSquare size={16} className="text-blue-500" /> : <Square size={16} />}
                               </button>
                             </th>
-                            {headers.map(h => (
-                              <th key={h} className="px-3 py-2 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                            {activeCols.map(col => (
+                              <th key={col.key} className="px-3 py-2 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider whitespace-nowrap">
                                 <button
-                                  onClick={() => handleSort(section.key, h)}
+                                  onClick={() => handleSort(section.key, col.key)}
                                   className="inline-flex items-center gap-0.5 hover:text-gray-600 dark:hover:text-gray-300 transition-colors group"
                                 >
-                                  {h}
-                                  {sortState?.col === h ? (
+                                  {col.label}
+                                  {sortState?.col === col.key ? (
                                     sortState.dir === 'asc'
                                       ? <ChevronUp size={12} className="text-blue-500" />
                                       : <ChevronDown size={12} className="text-blue-500" />
@@ -461,7 +554,7 @@ export const TableView: React.FC<TableViewProps> = React.memo(({
                                   {selected.has(r.id) ? <CheckSquare size={14} className="text-blue-500" /> : <Square size={14} />}
                                 </button>
                               </td>
-                              {renderRow(r)}
+                              {activeCols.map(col => <React.Fragment key={col.key}>{col.render(r)}</React.Fragment>)}
                               <td className="px-3 py-2.5 w-12">
                                 <button onClick={() => onEditRecord(r, r.dateStr)}
                                   className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all" title="编辑">
