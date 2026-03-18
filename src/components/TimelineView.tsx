@@ -447,9 +447,9 @@ function TimelineViewInner({
                         {/* Accent Line */}
                         <div className="w-1.5 rounded-full shrink-0" style={{ backgroundColor: record.color?.bg || '#10b981' }} />
                         
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start gap-4">
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 {getCategoryIcon(record.parent_tag || "", record.color?.text || record.color?.bg)}
                                 <h3 className="text-lg font-bold text-slate-800 dark:text-gray-100 leading-tight">
