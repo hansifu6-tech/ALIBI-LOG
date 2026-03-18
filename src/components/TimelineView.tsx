@@ -496,7 +496,7 @@ function TimelineViewInner({
                                 {extra.attractions && extra.attractions.length > 0 && (
                                   <div className="flex items-start gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80 min-w-0">
                                     <div className="w-3.5 flex justify-center shrink-0 mt-0.5"><Landmark size={11} /></div>
-                                    <span className="flex-1 min-w-0" style={{wordBreak: 'break-word'}}>{extra.attractions.map((att, aIdx) => (<React.Fragment key={aIdx}>{aIdx > 0 && <span className="mx-1 text-emerald-400/60">|</span>}<HighlightText text={att.name} keyword={kw} /></React.Fragment>))}</span>
+                                    <span className="flex-1 min-w-0" style={{wordBreak: 'break-word'}}>{extra.attractions.map((att, aIdx) => (<React.Fragment key={aIdx}>{aIdx > 0 && <span className="mx-1 opacity-60">|</span>}<HighlightText text={att.name} keyword={kw} /></React.Fragment>))}</span>
                                   </div>
                                 )}
                               </div>
@@ -1065,7 +1065,7 @@ function TimelineViewInner({
                                   {extra.attractions && extra.attractions.length > 0 && (
                                     <div className="flex items-start gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80 min-w-0">
                                       <div className="w-3.5 flex justify-center shrink-0 mt-0.5"><Landmark size={11} /></div>
-                                      <span className="flex-1 min-w-0" style={{wordBreak: 'break-word'}}>{extra.attractions.map((att, aIdx) => (<React.Fragment key={aIdx}>{aIdx > 0 && <span className="mx-1 text-emerald-400/60">|</span>}<HighlightText text={att.name} keyword={kw} /></React.Fragment>))}</span>
+                                      <span className="flex-1 min-w-0" style={{wordBreak: 'break-word'}}>{extra.attractions.map((att, aIdx) => (<React.Fragment key={aIdx}>{aIdx > 0 && <span className="mx-1 opacity-60">|</span>}<HighlightText text={att.name} keyword={kw} /></React.Fragment>))}</span>
                                     </div>
                                   )}
                                   {/* Linked Records in saved order */}
