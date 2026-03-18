@@ -2590,7 +2590,7 @@ export function RecordModal({
                      </div>
 
                      {/* ── Transport & Hotel Card ── */}
-                     <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/40 overflow-hidden">
+                     <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/40">
                        <button
                          type="button"
                          onClick={() => setTravelTransportExpanded(prev => !prev)}
@@ -2605,7 +2605,7 @@ export function RecordModal({
                        </button>
 
                        {travelTransportExpanded && (
-                         <div className="bg-emerald-50/30 dark:bg-emerald-900/10 p-3 space-y-4 overflow-hidden">
+                         <div className="bg-emerald-50/30 dark:bg-emerald-900/10 p-3 space-y-4">
 
                            {/* ── Railway Section ── */}
                            <div className="space-y-1.5">
@@ -2615,8 +2615,8 @@ export function RecordModal({
                              </div>
                              {travelRailways.map((r, i) => (
                                <div key={i} className="flex gap-2 items-center min-w-0">
-                                 <input type="text" value={r.trainNo} onChange={e => { const arr = [...travelRailways]; arr[i] = {...arr[i], trainNo: e.target.value}; setTravelRailways(arr); }} placeholder="车次" className="flex-1 px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
-                                 <input type="text" value={r.seat} onChange={e => { const arr = [...travelRailways]; arr[i] = {...arr[i], seat: e.target.value}; setTravelRailways(arr); }} placeholder="坐席" className="flex-1 px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
+                                 <input type="text" value={r.trainNo} onChange={e => { const arr = [...travelRailways]; arr[i] = {...arr[i], trainNo: e.target.value}; setTravelRailways(arr); }} placeholder="车次" className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
+                                 <input type="text" value={r.seat} onChange={e => { const arr = [...travelRailways]; arr[i] = {...arr[i], seat: e.target.value}; setTravelRailways(arr); }} placeholder="坐席" className="w-20 shrink-0 px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
                                  {travelRailways.length > 1 && (
                                    <button type="button" onClick={() => setTravelRailways(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600 text-xs shrink-0">×</button>
                                  )}
@@ -2632,14 +2632,14 @@ export function RecordModal({
                              </div>
                              {travelFlights.map((f, i) => (
                                <div key={i} className="space-y-1.5">
-                                 <div className="flex gap-2 items-center min-w-0">
+                                 <div className="flex gap-2 items-center">
                                    <input type="text" value={f.airline} onChange={e => { const arr = [...travelFlights]; arr[i] = {...arr[i], airline: e.target.value}; setTravelFlights(arr); }} placeholder="航司" className="w-20 px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
                                    <input type="text" value={f.flightNo} onChange={e => { const arr = [...travelFlights]; arr[i] = {...arr[i], flightNo: e.target.value}; setTravelFlights(arr); }} placeholder="航班号" className="flex-1 px-2 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400 placeholder:text-gray-300" />
                                    {travelFlights.length > 1 && (
                                      <button type="button" onClick={() => setTravelFlights(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600 text-xs shrink-0">×</button>
                                    )}
                                  </div>
-                                 <div className="flex gap-2 items-center min-w-0">
+                                 <div className="flex gap-2 items-center">
                                    {/* Departure airport with AMap autocomplete */}
                                    <div className="flex-1 relative">
                                      <input type="text" value={f.departAirport} onChange={e => {
@@ -2720,12 +2720,12 @@ export function RecordModal({
                              {travelDestType === 'domestic' ? (
                                <div>
                              {/* City selector + auto-locate */}
-                             <div className="flex gap-2 items-center mb-1.5 min-w-0">
-                               <select value={travelHotelProvince} onChange={e => { setTravelHotelProvince(e.target.value); setTravelHotelCity(''); }} className="flex-1 min-w-0 px-1.5 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-xs text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400">
+                             <div className="flex gap-2 items-center mb-1.5">
+                               <select value={travelHotelProvince} onChange={e => { setTravelHotelProvince(e.target.value); setTravelHotelCity(''); }} className="w-24 px-1.5 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-xs text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400">
                                  <option value="">省份</option>
                                  {provinceData.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
                                </select>
-                               <select value={travelHotelCity} onChange={e => setTravelHotelCity(e.target.value)} className="flex-1 min-w-0 px-1.5 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-xs text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400">
+                               <select value={travelHotelCity} onChange={e => setTravelHotelCity(e.target.value)} className="w-24 px-1.5 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-700/50 bg-white dark:bg-gray-900 text-xs text-gray-800 dark:text-gray-100 outline-none focus:ring-1 focus:ring-emerald-400">
                                  <option value="">城市</option>
                                  {(provinceData.find(p => p.name === travelHotelProvince)?.cities || []).map(c => <option key={c} value={c}>{c}</option>)}
                                </select>
