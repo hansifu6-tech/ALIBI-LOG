@@ -459,7 +459,7 @@ function TimelineViewInner({
 
                               {/* Travel metadata panel — only show if there's content */}
                               {((extra.destinations && extra.destinations.length > 0) || extra.totalSpend || (extra.attractions && extra.attractions.length > 0) || (extra.railways && extra.railways.length > 0) || (extra.flights && extra.flights.length > 0) || (extra.hotels && extra.hotels.length > 0)) && (
-                              <div className="mt-3 flex flex-col gap-1.5 py-3 px-4 bg-emerald-50/40 dark:bg-emerald-900/10 rounded-lg border border-emerald-100/50 dark:border-emerald-800/30">
+                              <div className="mt-3 flex flex-col gap-1.5 py-3 px-4 bg-emerald-50/40 dark:bg-emerald-900/10 rounded-lg border border-emerald-100/50 dark:border-emerald-800/30 overflow-hidden">
                                 {/* Railway rows */}
                                 {extra.railways && extra.railways.filter(r => r.trainNo).length > 0 && (
                                   <div className="flex items-start gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
@@ -476,7 +476,7 @@ function TimelineViewInner({
                                 )}
                                 {/* Hotel rows */}
                                 {extra.hotels && extra.hotels.filter(h => h.name).length > 0 && (
-                                  <div className="flex items-start gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                                  <div className="flex items-start gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80 min-w-0">
                                     <div className="w-3.5 flex justify-center shrink-0 mt-0.5"><Hotel size={12} /></div>
                                     <span className="flex-1 truncate">{extra.hotels.map(h => h.name).join(' | ')}</span>
                                   </div>
@@ -496,7 +496,7 @@ function TimelineViewInner({
                                 {extra.attractions && extra.attractions.length > 0 && (
                                   <div className="flex flex-col gap-1 mt-1">
                                     {extra.attractions.map((att, aIdx) => (
-                                      <div key={aIdx} className="flex items-center gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                                      <div key={aIdx} className="flex items-center gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80 min-w-0">
                                         <div className="w-3.5 flex justify-center shrink-0"><Landmark size={11} /></div>
                                         <span className="flex-1 truncate">
                                           <HighlightText text={att.name} keyword={kw} />
@@ -1071,7 +1071,7 @@ function TimelineViewInner({
                                   {extra.attractions && extra.attractions.length > 0 && (
                                     <div className="flex flex-col gap-1 mt-1">
                                       {extra.attractions.map((att, aIdx) => (
-                                        <div key={aIdx} className="flex items-center gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                                        <div key={aIdx} className="flex items-center gap-4 text-xs text-emerald-700/80 dark:text-emerald-300/80 min-w-0">
                                           <div className="w-3.5 flex justify-center shrink-0">
                                             <Landmark size={11} />
                                           </div>
