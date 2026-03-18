@@ -2834,11 +2834,10 @@ export function RecordModal({
                        )}
                      </div>
 
-                    {/* Attractions — domestic only */}
-                    {travelDestType === 'domestic' && (
+                    {/* Attractions — domestic + overseas */}
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                        🏞️ 景点 <span className="text-xs font-normal text-gray-400">(高德搜索，可选)</span>
+                        🏞️ 景点 <span className="text-xs font-normal text-gray-400">{travelDestType === 'domestic' ? '(高德搜索，可选)' : '(手动输入，可选)'}</span>
                       </label>
                       {travelAttractions.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mb-1">
@@ -2853,137 +2852,164 @@ export function RecordModal({
                           ))}
                         </div>
                       )}
-                      {/* Single row: province + city + locate + search input */}
-                      <div className="flex gap-1.5 items-center relative">
-                        <select
-                          value={travelAttractionProvince}
-                          onChange={e => {
-                            setTravelAttractionProvince(e.target.value);
-                            setTravelAttractionCity('');
-                            travelAttractionAcRef.current = null;
-                          }}
-                          className="w-[72px] p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[11px] text-gray-800 dark:text-gray-100 outline-none shrink-0"
-                        >
-                          <option value="">省份</option>
-                          {provinceData.map(p => (
-                            <option key={p.name} value={p.name}>{p.name}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={travelAttractionCity}
-                          onChange={e => {
-                            setTravelAttractionCity(e.target.value);
-                            travelAttractionAcRef.current = null;
-                          }}
-                          disabled={!travelAttractionProvince}
-                          className="w-[72px] p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[11px] text-gray-800 dark:text-gray-100 outline-none disabled:opacity-40 shrink-0"
-                        >
-                          <option value="">城市</option>
-                          {travelAttractionProvince && provinceData.find(p => p.name === travelAttractionProvince)?.cities.map(c => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const AMap = (window as any).AMap;
-                            if (!AMap) return;
-                            const citySearch = new AMap.CitySearch();
-                            citySearch.getLocalCity((status: string, result: any) => {
-                              if (status === 'complete' && result.info === 'OK') {
-                                const prov = result.province || '';
-                                const city = result.city || '';
-                                const matchedProv = provinceData.find(p => prov.includes(p.name) || p.name.includes(prov));
-                                if (matchedProv) {
-                                  setTravelAttractionProvince(matchedProv.name);
-                                  const matchedCity = matchedProv.cities.find((c: string) => city.includes(c) || c.includes(city));
-                                  setTravelAttractionCity(matchedCity || '');
-                                  travelAttractionAcRef.current = null;
+                      {travelDestType === 'domestic' ? (
+                        <div className="flex gap-1.5 items-center relative">
+                          <select
+                            value={travelAttractionProvince}
+                            onChange={e => {
+                              setTravelAttractionProvince(e.target.value);
+                              setTravelAttractionCity('');
+                              travelAttractionAcRef.current = null;
+                            }}
+                            className="w-[72px] p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[11px] text-gray-800 dark:text-gray-100 outline-none shrink-0"
+                          >
+                            <option value="">省份</option>
+                            {provinceData.map(p => (
+                              <option key={p.name} value={p.name}>{p.name}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={travelAttractionCity}
+                            onChange={e => {
+                              setTravelAttractionCity(e.target.value);
+                              travelAttractionAcRef.current = null;
+                            }}
+                            disabled={!travelAttractionProvince}
+                            className="w-[72px] p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[11px] text-gray-800 dark:text-gray-100 outline-none disabled:opacity-40 shrink-0"
+                          >
+                            <option value="">城市</option>
+                            {travelAttractionProvince && provinceData.find(p => p.name === travelAttractionProvince)?.cities.map(c => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const AMap = (window as any).AMap;
+                              if (!AMap) return;
+                              const citySearch = new AMap.CitySearch();
+                              citySearch.getLocalCity((status: string, result: any) => {
+                                if (status === 'complete' && result.info === 'OK') {
+                                  const prov = result.province || '';
+                                  const city = result.city || '';
+                                  const matchedProv = provinceData.find(p => prov.includes(p.name) || p.name.includes(prov));
+                                  if (matchedProv) {
+                                    setTravelAttractionProvince(matchedProv.name);
+                                    const matchedCity = matchedProv.cities.find((c: string) => city.includes(c) || c.includes(city));
+                                    setTravelAttractionCity(matchedCity || '');
+                                    travelAttractionAcRef.current = null;
+                                  }
                                 }
-                              }
-                            });
-                          }}
-                          className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 transition-colors shrink-0"
-                          title="自动定位"
-                        >
-                          <LocateFixed size={14} />
-                        </button>
-                        <div className="flex-1 relative">
+                              });
+                            }}
+                            className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 transition-colors shrink-0"
+                            title="自动定位"
+                          >
+                            <LocateFixed size={14} />
+                          </button>
+                          <div className="flex-1 relative">
+                            <input
+                              type="text"
+                              value={travelAttractionInput}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setTravelAttractionInput(val);
+                                blockTravelSuggestRef.current = false;
+                                if (val.trim().length >= 2) {
+                                  const doSearch = () => {
+                                    if (!(window as any).AMap) return;
+                                    const cityParam = travelAttractionCity || (travelDestinations.length > 0 ? travelDestinations[0] : '');
+                                    if (!travelAttractionAcRef.current || (travelAttractionAcRef.current as any).__city !== cityParam) {
+                                      (window as any).AMap.plugin('AMap.PlaceSearch', () => {
+                                        travelAttractionAcRef.current = new (window as any).AMap.PlaceSearch({
+                                          pageSize: 5,
+                                          city: cityParam || '',
+                                          citylimit: !!cityParam,
+                                        });
+                                        (travelAttractionAcRef.current as any).__city = cityParam;
+                                      });
+                                    }
+                                    setTimeout(() => {
+                                      if (travelAttractionAcRef.current && !blockTravelSuggestRef.current) {
+                                        travelAttractionAcRef.current.search(val, (status: string, result: any) => {
+                                          if (status === 'complete' && result.poiList?.pois) {
+                                            setTravelAttractionSuggestions(result.poiList.pois.slice(0, 5));
+                                            setShowTravelAttractionSuggestions(true);
+                                          }
+                                        });
+                                      }
+                                    }, 100);
+                                  };
+                                  doSearch();
+                                } else {
+                                  setTravelAttractionSuggestions([]);
+                                  setShowTravelAttractionSuggestions(false);
+                                }
+                              }}
+                              placeholder={(() => {
+                                const c = travelAttractionCity || (travelDestinations.length > 0 ? travelDestinations[0] : '');
+                                return c ? `在${c}搜索…` : '搜索景点…';
+                              })()}
+                              className="w-full p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[11px] outline-none focus:ring-1 focus:ring-emerald-400 text-gray-800 dark:text-gray-100"
+                            />
+                            {showTravelAttractionSuggestions && travelAttractionSuggestions.length > 0 && (
+                              <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto">
+                                {travelAttractionSuggestions.map((poi: any, i: number) => (
+                                  <button
+                                    key={i}
+                                    className="w-full text-left px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-sm transition-colors border-b border-gray-50 dark:border-gray-700/30 last:border-0"
+                                    onClick={() => {
+                                      blockTravelSuggestRef.current = true;
+                                      const newAttraction: TravelAttraction = {
+                                        name: poi.name,
+                                        poiId: poi.id,
+                                        lat: poi.location?.lat,
+                                        lng: poi.location?.lng,
+                                        address: poi.address,
+                                      };
+                                      setTravelAttractions(prev => [...prev, newAttraction]);
+                                      setTravelAttractionInput('');
+                                      setShowTravelAttractionSuggestions(false);
+                                      setTravelAttractionSuggestions([]);
+                                    }}
+                                  >
+                                    <div className="font-bold text-gray-800 dark:text-gray-100 text-xs">{poi.name}</div>
+                                    <div className="text-[10px] text-gray-400 truncate">{poi.address}</div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-1.5 items-center">
                           <input
                             type="text"
                             value={travelAttractionInput}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setTravelAttractionInput(val);
-                              blockTravelSuggestRef.current = false;
-                              if (val.trim().length >= 2) {
-                                const doSearch = () => {
-                                  if (!(window as any).AMap) return;
-                                  const cityParam = travelAttractionCity || (travelDestinations.length > 0 ? travelDestinations[0] : '');
-                                  if (!travelAttractionAcRef.current || (travelAttractionAcRef.current as any).__city !== cityParam) {
-                                    (window as any).AMap.plugin('AMap.PlaceSearch', () => {
-                                      travelAttractionAcRef.current = new (window as any).AMap.PlaceSearch({
-                                        pageSize: 5,
-                                        city: cityParam || '',
-                                        citylimit: !!cityParam,
-                                      });
-                                      (travelAttractionAcRef.current as any).__city = cityParam;
-                                    });
-                                  }
-                                  setTimeout(() => {
-                                    if (travelAttractionAcRef.current && !blockTravelSuggestRef.current) {
-                                      travelAttractionAcRef.current.search(val, (status: string, result: any) => {
-                                        if (status === 'complete' && result.poiList?.pois) {
-                                          setTravelAttractionSuggestions(result.poiList.pois.slice(0, 5));
-                                          setShowTravelAttractionSuggestions(true);
-                                        }
-                                      });
-                                    }
-                                  }, 100);
-                                };
-                                doSearch();
-                              } else {
-                                setTravelAttractionSuggestions([]);
-                                setShowTravelAttractionSuggestions(false);
+                            onChange={e => setTravelAttractionInput(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' && travelAttractionInput.trim()) {
+                                e.preventDefault();
+                                setTravelAttractions(prev => [...prev, { name: travelAttractionInput.trim() }]);
+                                setTravelAttractionInput('');
                               }
                             }}
-                            placeholder={(() => {
-                              const c = travelAttractionCity || (travelDestinations.length > 0 ? travelDestinations[0] : '');
-                              return c ? `在${c}搜索…` : '搜索景点…';
-                            })()}
-                            className="w-full p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[11px] outline-none focus:ring-1 focus:ring-emerald-400 text-gray-800 dark:text-gray-100"
+                            placeholder="输入景点名称…"
+                            className="flex-1 p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-[11px] outline-none focus:ring-1 focus:ring-emerald-400 text-gray-800 dark:text-gray-100"
                           />
-                          {showTravelAttractionSuggestions && travelAttractionSuggestions.length > 0 && (
-                            <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto">
-                              {travelAttractionSuggestions.map((poi: any, i: number) => (
-                                <button
-                                  key={i}
-                                  className="w-full text-left px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-sm transition-colors border-b border-gray-50 dark:border-gray-700/30 last:border-0"
-                                  onClick={() => {
-                                    blockTravelSuggestRef.current = true;
-                                    const newAttraction: TravelAttraction = {
-                                      name: poi.name,
-                                      poiId: poi.id,
-                                      lat: poi.location?.lat,
-                                      lng: poi.location?.lng,
-                                      address: poi.address,
-                                    };
-                                    setTravelAttractions(prev => [...prev, newAttraction]);
-                                    setTravelAttractionInput('');
-                                    setShowTravelAttractionSuggestions(false);
-                                    setTravelAttractionSuggestions([]);
-                                  }}
-                                >
-                                  <div className="font-bold text-gray-800 dark:text-gray-100 text-xs">{poi.name}</div>
-                                  <div className="text-[10px] text-gray-400 truncate">{poi.address}</div>
-                                </button>
-                              ))}
-                            </div>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (travelAttractionInput.trim()) {
+                                setTravelAttractions(prev => [...prev, { name: travelAttractionInput.trim() }]);
+                                setTravelAttractionInput('');
+                              }
+                            }}
+                            className="px-2.5 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-bold hover:bg-emerald-600 transition-colors shrink-0"
+                          >添加</button>
                         </div>
-                      </div>
+                      )}
                     </div>
-                    )}
 
                     {/* Linked Records */}
                     <div className="space-y-2">
