@@ -65,12 +65,13 @@ export const FoodSummary: React.FC<FoodSummaryProps> = ({ records, tags }) => {
     let totalSpend = 0;
     const citySet = new Set<string>();
     const categoryCount: Record<string, number> = {};
-    const categoryRatings: Record<string, { name: string; rating: number }[]> = {};
+    // Intermediate: collect all ratings per restaurant per category
+    const categoryRatingsRaw: Record<string, Record<string, { totalRating: number; count: number }>> = {};
 
     // Init categories
     foodTags.forEach(t => {
       categoryCount[t.name] = 0;
-      categoryRatings[t.name] = [];
+      categoryRatingsRaw[t.name] = {};
     });
 
     filteredRecords.forEach(r => {
@@ -94,22 +95,34 @@ export const FoodSummary: React.FC<FoodSummaryProps> = ({ records, tags }) => {
         if (cityMatch) citySet.add(cityMatch[1]);
       }
 
-      // Category count & ratings
+      // Category count & ratings (deduplicated by restaurant)
       const rTags = r.tag_names?.filter(n => n !== '美食模式') || [];
       rTags.forEach(tagName => {
         if (categoryCount[tagName] !== undefined) {
           categoryCount[tagName]++;
-          if (extra?.rating) {
-            categoryRatings[tagName] = categoryRatings[tagName] || [];
-            categoryRatings[tagName].push({ name: restaurant, rating: extra.rating });
+          if (extra?.rating && restaurant) {
+            if (!categoryRatingsRaw[tagName]) categoryRatingsRaw[tagName] = {};
+            const existing = categoryRatingsRaw[tagName][restaurant];
+            if (existing) {
+              existing.totalRating += extra.rating;
+              existing.count += 1;
+            } else {
+              categoryRatingsRaw[tagName][restaurant] = { totalRating: extra.rating, count: 1 };
+            }
           }
         }
       });
     });
 
-    // Sort ratings per category
-    Object.keys(categoryRatings).forEach(key => {
-      categoryRatings[key].sort((a, b) => b.rating - a.rating);
+    // Build deduplicated ratings with weighted score: count × avgRating
+    const categoryRatings: Record<string, { name: string; rating: number; count: number; weightedScore: number }[]> = {};
+    Object.keys(categoryRatingsRaw).forEach(key => {
+      categoryRatings[key] = Object.entries(categoryRatingsRaw[key])
+        .map(([name, data]) => {
+          const avgRating = data.totalRating / data.count;
+          return { name, rating: parseFloat(avgRating.toFixed(1)), count: data.count, weightedScore: data.count * avgRating };
+        })
+        .sort((a, b) => b.weightedScore - a.weightedScore);
     });
 
     return {
@@ -466,7 +479,10 @@ export const FoodSummary: React.FC<FoodSummaryProps> = ({ records, tags }) => {
                               {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
                             </span>
                             <span className="flex-1 text-sm font-bold text-slate-700 dark:text-gray-200 truncate">{item.name}</span>
-                            <div className="flex items-center gap-1 shrink-0">
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {item.count > 1 && (
+                                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">{item.count}次</span>
+                              )}
                               <Star size={12} className="text-amber-400" fill="currentColor" />
                               <span className="text-sm font-black text-amber-600">{item.rating.toFixed(1)}</span>
                             </div>
