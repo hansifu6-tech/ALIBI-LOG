@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { X, Check, Trash2, RotateCcw, Camera, Star, MapPin, LocateFixed, GripVertical, Pencil } from 'lucide-react';
 import { presetColors } from '../utils/colors';
 import { provinceData } from '../utils/cityData';
@@ -2729,18 +2729,53 @@ export function RecordModal({
                                  <option value="">城市</option>
                                  {(provinceData.find(p => p.name === travelHotelProvince)?.cities || []).map(c => <option key={c} value={c}>{c}</option>)}
                                </select>
-                               <button type="button" onClick={() => {
-                                 if (!(window as any).AMap) return;
-                                 const AMap = (window as any).AMap;
-                                 const cs = new AMap.CitySearch();
-                                 cs.getLocalCity((status: string, result: any) => {
-                                    if (status === 'complete' && result.info === 'OK') {
-                                      const prov = (result.province || '').replace(/省$/, '').replace(/壮族自治区$/,'广西').replace(/维吾尔自治区$/,'新疆').replace(/回族自治区$/,'宁夏').replace(/自治区$/, '');
-                                      setTravelHotelProvince(prov);
-                                      setTravelHotelCity(result.city || '');
-                                    }
-                                 });
-                               }} className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 transition-colors shrink-0" title="自动定位">
+                                <button type="button" onClick={() => {
+                                  const doIpFallback = () => {
+                                    const AMap = (window as any).AMap;
+                                    if (!AMap) return;
+                                    const cs = new AMap.CitySearch();
+                                    cs.getLocalCity((status: string, result: any) => {
+                                      if (status === 'complete' && result.info === 'OK') {
+                                        const rawProv = result.province || '';
+                                        const prov = rawProv.replace(/(省|市)$/, '').replace(/壮族自治区$/,'广西').replace(/维吾尔自治区$/,'新疆').replace(/回族自治区$/,'宁夏').replace(/自治区$/, '');
+                                        const matched = provinceData.find(p => p.name === prov);
+                                        if (matched) {
+                                          setTravelHotelProvince(matched.name);
+                                          const cityName = result.city || '';
+                                          const matchedCity = matched.cities.find(c => c === cityName || c.startsWith(cityName.replace(/市$/, '')));
+                                          setTravelHotelCity(matchedCity || cityName);
+                                        }
+                                      }
+                                    });
+                                  };
+                                  if (!navigator.geolocation) { doIpFallback(); return; }
+                                  navigator.geolocation.getCurrentPosition(
+                                    (pos) => {
+                                      const AMap = (window as any).AMap;
+                                      if (!AMap) return;
+                                      AMap.plugin('AMap.Geocoder', () => {
+                                        const geocoder = new AMap.Geocoder();
+                                        const lnglat = [pos.coords.longitude, pos.coords.latitude];
+                                        geocoder.getAddress(lnglat, (status: string, result: any) => {
+                                          if (status === 'complete' && result.regeocode) {
+                                            const ac = result.regeocode.addressComponent;
+                                            const rawProv = ac.province || '';
+                                            const prov = rawProv.replace(/(省|市)$/, '').replace(/壮族自治区$/,'广西').replace(/维吾尔自治区$/,'新疆').replace(/回族自治区$/,'宁夏').replace(/自治区$/, '');
+                                            const matched = provinceData.find(p => p.name === prov);
+                                            if (matched) {
+                                              setTravelHotelProvince(matched.name);
+                                              const cityName = ac.city || ac.province || '';
+                                              const matchedCity = matched.cities.find(c => c === cityName || c.startsWith(cityName.replace(/市$/, '')));
+                                              setTravelHotelCity(matchedCity || cityName);
+                                            }
+                                          }
+                                        });
+                                      });
+                                    },
+                                    () => { doIpFallback(); },
+                                    { enableHighAccuracy: false, timeout: 5000 }
+                                  );
+                                }} className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 transition-colors shrink-0" title="自动定位">
                                  <LocateFixed size={14} />
                                </button>
                              </div>
