@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { X, Check, Trash2, RotateCcw, Camera, Star, MapPin, LocateFixed, GripVertical, Pencil } from 'lucide-react';
 import { presetColors } from '../utils/colors';
 import { provinceData } from '../utils/cityData';
@@ -195,8 +195,7 @@ export function RecordModal({
   // Geographic Precision States
   const [foodProvince, setFoodProvince] = useState<string>('');
   const [foodCity, setFoodCity] = useState<string>('全国');
-  const [provinceList, setProvinceList] = useState<any[]>([]);
-  const [cityList, setCityList] = useState<any[]>([]);
+
   const [isLocationLoading, setIsLocationLoading] = useState(false);
 
   // AMap Custom UI States
@@ -528,13 +527,6 @@ export function RecordModal({
       // 1. Manual IP Positioning (Disabled auto-trigger on load as per request)
       // Maintaining current states, no reset here
 
-      // 2. Load Province List
-      const district = new AMap.DistrictSearch({ level: 'country', subdistrict: 1 });
-      district.search('中国', (status: string, result: any) => {
-        if (status === 'complete') {
-          setProvinceList(result.districtList[0].districtList);
-        }
-      });
 
       const tryBind = () => {
         setTimeout(() => {
@@ -674,25 +666,6 @@ export function RecordModal({
   }, [isLocationLoading]);
 
 
-  // Effect to load cities when province changes
-  useEffect(() => {
-    if (foodProvince && (window as any).AMap) {
-      const AMap = (window as any).AMap;
-      const district = new AMap.DistrictSearch({ level: 'province', subdistrict: 1 });
-      district.search(foodProvince, (status: string, result: any) => {
-        if (status === 'complete' && result.districtList[0].districtList) {
-          setCityList(result.districtList[0].districtList);
-          // If the current city isn't in the new province, reset it
-          const currentCityInList = result.districtList[0].districtList.find((c: any) => c.name === foodCity);
-          if (!currentCityInList && foodCity !== '全国') {
-            setFoodCity(result.districtList[0].districtList[0].name);
-          }
-        } else {
-          setCityList([]);
-        }
-      });
-    }
-  }, [foodProvince]);
 
   // Ensure city change is synced with AMap instances
   useEffect(() => {
@@ -1803,8 +1776,8 @@ export function RecordModal({
                             className="bg-transparent outline-none w-full text-slate-700 dark:text-slate-300 cursor-pointer"
                           >
                             <option value="">全部</option>
-                            {provinceList.map(p => (
-                              <option key={p.adcode} value={p.name}>{p.name}</option>
+                            {provinceData.map(p => (
+                              <option key={p.name} value={p.name}>{p.name}</option>
                             ))}
                           </select>
                         </div>
@@ -1816,8 +1789,8 @@ export function RecordModal({
                             className="bg-transparent outline-none w-full text-slate-700 dark:text-slate-300 cursor-pointer"
                           >
                             <option value="全国">全国</option>
-                            {cityList.map(c => (
-                              <option key={c.adcode} value={c.name}>{c.name}</option>
+                            {(provinceData.find(p => foodProvince && (p.name === foodProvince || foodProvince.includes(p.name)))?.cities || []).map(c => (
+                              <option key={c} value={c}>{c}</option>
                             ))}
                           </select>
                         </div>
