@@ -65,10 +65,10 @@ interface TravelSummaryProps {
 // AMap Security Config (same as FoodMap)
 if (typeof window !== 'undefined') {
   (window as any)._AMapSecurityConfig = {
-    securityJsCode: '9ec70dc2db7d42cc92feb1a2b825e22f',
+    securityJsCode: import.meta.env.VITE_AMAP_SECURITY_CODE || '',
   };
 }
-const AMAP_KEY = 'cd4b3bc21146d9163337e1e174b8cc8a';
+const AMAP_KEY = import.meta.env.VITE_AMAP_KEY || '';
 
 interface TravelAMapProps {
   markers: { name: string; lat: number; lng: number; type: string; detail?: string }[];

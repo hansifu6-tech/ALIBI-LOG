@@ -8,11 +8,11 @@ interface FoodMapProps {
 // AMap Security Config
 if (typeof window !== 'undefined') {
   (window as any)._AMapSecurityConfig = {
-    securityJsCode: '9ec70dc2db7d42cc92feb1a2b825e22f',
+    securityJsCode: import.meta.env.VITE_AMAP_SECURITY_CODE || '',
   };
 }
 
-const AMAP_KEY = 'cd4b3bc21146d9163337e1e174b8cc8a';
+const AMAP_KEY = import.meta.env.VITE_AMAP_KEY || '';
 
 // Custom marker HTML with orange pin styling
 const createMarkerContent = (_name: string, rating?: number) => {

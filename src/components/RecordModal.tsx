@@ -10,7 +10,7 @@ import { modulesConfig } from '../config/modulesConfig';
 // ── AMap Security Config (Hard Injection) ────────────────────────
 if (typeof window !== 'undefined') {
   (window as any)._AMapSecurityConfig = {
-    securityJsCode: '9ec70dc2db7d42cc92feb1a2b825e22f',
+    securityJsCode: import.meta.env.VITE_AMAP_SECURITY_CODE || '',
   };
 }
 
@@ -717,7 +717,7 @@ export function RecordModal({
 
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `https://webapi.amap.com/maps?v=2.0&key=cd4b3bc21146d9163337e1e174b8cc8a`;
+    script.src = `https://webapi.amap.com/maps?v=2.0&key=${import.meta.env.VITE_AMAP_KEY || ""}`;
     script.async = true;
     script.onload = initAutoComplete;
     script.onerror = () => {
@@ -743,7 +743,7 @@ export function RecordModal({
       if (!document.getElementById(scriptId)) {
         const script = document.createElement('script');
         script.id = scriptId;
-        script.src = `https://webapi.amap.com/maps?v=2.0&key=cd4b3bc21146d9163337e1e174b8cc8a`;
+        script.src = `https://webapi.amap.com/maps?v=2.0&key=${import.meta.env.VITE_AMAP_KEY || ""}`;
         script.async = true;
         document.head.appendChild(script);
       }
