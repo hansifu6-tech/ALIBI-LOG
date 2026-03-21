@@ -36,7 +36,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
           <h3 className="text-lg font-black text-slate-800 dark:text-gray-100 text-center">
             ALIBI LOG 个人项目用户协议与隐私政策
           </h3>
-          <p className="text-xs text-gray-400 text-center">最后更新日期：2026年3月15日</p>
+          <p className="text-xs text-gray-400 text-center">最后更新日期：2026年3月22日</p>
 
           <section className="space-y-2">
             <h4 className="text-sm font-black text-slate-700 dark:text-gray-200">1. 特别申明：项目性质</h4>
@@ -60,7 +60,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
             <h4 className="text-sm font-black text-slate-700 dark:text-gray-200">3. 隐私保护与数据流转</h4>
             <ul className="list-disc pl-5 space-y-1 text-xs">
               <li><strong>本地存储：</strong>本站优先采用本地存储（如 LocalStorage）或受保护的私有数据库。您的"感想"、"评分"、"标签"等私人评价内容不会同步给高德或其他第三方。</li>
-              <li><strong>地理位置数据：</strong>当您使用"搜索店名"或"自动定位"功能时，系统会将查询关键词或坐标发送至高德服务器以获取结果。</li>
+              <li><strong>地理位置数据：</strong>当您使用"自动定位"功能时，本站会通过浏览器的 Geolocation API <strong>请求您的设备定位权限</strong>，以获取精确的地理坐标（经纬度）。该坐标将发送至高德地图服务器进行逆地理编码（将坐标转换为省/市地名）。若您拒绝授权或设备不支持定位，系统将自动回退至基于 IP 地址的城市级粗略定位。<strong>本站不会存储您的实时 GPS 坐标数据</strong>，仅保留您选择的城市/地点名称。当您使用"搜索店名"功能时，查询关键词将发送至高德服务器以获取联想结果。</li>
               <li><strong>不追踪原则：</strong>本站不会记录或存储您的实时行动轨迹。</li>
             </ul>
           </section>
