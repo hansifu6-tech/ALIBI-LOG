@@ -635,23 +635,44 @@ export function RecordModal({
     });
   }, [onAddTag]); // Removed foodCity from dependency to prevent re-init loops
 
-  // 手动触发 IP 定位 (Manual Position Trigger)
+  // 手动触发定位 (GPS + AMap逆地理, fallback to IP)
   const handleManualLocation = useCallback(() => {
-    if (typeof window === 'undefined' || !(window as any).AMap || isLocationLoading) return;
-    
-    const AMap = (window as any).AMap;
-    const citySearch = new AMap.CitySearch();
-    
+    if (typeof window === 'undefined' || isLocationLoading) return;
     setIsLocationLoading(true);
-    citySearch.getLocalCity((status: string, result: any) => {
-      if (status === 'complete' && result.info === 'OK') {
-        setFoodProvince(result.province);
-        setFoodCity(result.city);
-      } else {
-      }
-      setIsLocationLoading(false);
-    });
+    const doIpFallback = () => {
+      const AMap = (window as any).AMap;
+      if (!AMap) { setIsLocationLoading(false); return; }
+      const cs = new AMap.CitySearch();
+      cs.getLocalCity((s: string, r: any) => {
+        if (s === 'complete' && r.info === 'OK') {
+          setFoodProvince(r.province);
+          setFoodCity(r.city);
+        }
+        setIsLocationLoading(false);
+      });
+    };
+    if (!navigator.geolocation) { doIpFallback(); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const AMap = (window as any).AMap;
+        if (!AMap) { doIpFallback(); return; }
+        AMap.plugin('AMap.Geocoder', () => {
+          const geocoder = new AMap.Geocoder();
+          geocoder.getAddress([pos.coords.longitude, pos.coords.latitude], (s: string, r: any) => {
+            if (s === 'complete' && r.regeocode) {
+              const ac = r.regeocode.addressComponent;
+              setFoodProvince(ac.province || '');
+              setFoodCity(ac.city || ac.province || '');
+            }
+            setIsLocationLoading(false);
+          });
+        });
+      },
+      () => { doIpFallback(); },
+      { enableHighAccuracy: false, timeout: 5000 }
+    );
   }, [isLocationLoading]);
+
 
   // Effect to load cities when province changes
   useEffect(() => {
@@ -823,31 +844,48 @@ export function RecordModal({
     setTimeout(() => { blockNormalSuggestRef.current = false; }, 800);
   }, []);
 
-  // Normal mode: manual IP location
+  // Normal mode: GPS location (fallback to IP)
   const handleNormalManualLocation = useCallback(() => {
     if (isNormalLocationLoading) return;
     setIsNormalLocationLoading(true);
-    ensureAMapLoaded().then((AMap: any) => {
-      if (!AMap) { setIsNormalLocationLoading(false); return; }
-      AMap.plugin(['AMap.CitySearch'], () => {
-        const citySearch = new AMap.CitySearch();
-        citySearch.getLocalCity((status: string, result: any) => {
-          if (status === 'complete' && result.info === 'OK') {
-            // Match province name to provinceData format (strip 省/市/自治区 suffix)
-            const rawProv = result.province || '';
-            const shortProv = rawProv.replace(/(省|市|自治区|壮族自治区|回族自治区|维吾尔自治区|特别行政区)$/, '');
-            const matched = provinceData.find(p => p.name === shortProv || p.name === rawProv);
-            if (matched) {
-              setNormalProvince(matched.name);
-            } else {
-              setNormalProvince(rawProv);
-            }
-            setNormalCity(result.city || '');
+    const doIpFallback = () => {
+      ensureAMapLoaded().then((AMap: any) => {
+        if (!AMap) { setIsNormalLocationLoading(false); return; }
+        const cs = new AMap.CitySearch();
+        cs.getLocalCity((s: string, r: any) => {
+          if (s === 'complete' && r.info === 'OK') {
+            const prov = (r.province || '').replace(/(省|市|自治区|壮族自治区|回族自治区|维吾尔自治区|特别行政区)$/, '');
+            const matched = provinceData.find(p => p.name === prov || p.name === (r.province || ''));
+            setNormalProvince(matched ? matched.name : (r.province || ''));
+            setNormalCity(r.city || '');
           }
           setIsNormalLocationLoading(false);
         });
       });
-    });
+    };
+    if (!navigator.geolocation) { doIpFallback(); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        ensureAMapLoaded().then((AMap: any) => {
+          if (!AMap) { doIpFallback(); return; }
+          AMap.plugin('AMap.Geocoder', () => {
+            const geocoder = new AMap.Geocoder();
+            geocoder.getAddress([pos.coords.longitude, pos.coords.latitude], (s: string, r: any) => {
+              if (s === 'complete' && r.regeocode) {
+                const ac = r.regeocode.addressComponent;
+                const prov = (ac.province || '').replace(/(省|市|自治区|壮族自治区|回族自治区|维吾尔自治区|特别行政区)$/, '');
+                const matched = provinceData.find(p => p.name === prov);
+                setNormalProvince(matched ? matched.name : prov);
+                setNormalCity(ac.city || ac.province || '');
+              }
+              setIsNormalLocationLoading(false);
+            });
+          });
+        });
+      },
+      () => { doIpFallback(); },
+      { enableHighAccuracy: false, timeout: 5000 }
+    );
   }, [isNormalLocationLoading, ensureAMapLoaded]);
 
   // Normal mode: city change -> update AMap instance
@@ -953,30 +991,48 @@ export function RecordModal({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Theater mode: manual IP location
+  // Theater mode: GPS location (fallback to IP)
   const handleTheaterManualLocation = useCallback(() => {
     if (isLocationLoading) return;
     setIsLocationLoading(true);
-    ensureAMapLoaded().then((AMap: any) => {
-      if (!AMap) { setIsLocationLoading(false); return; }
-      AMap.plugin(['AMap.CitySearch'], () => {
-        const citySearch = new AMap.CitySearch();
-        citySearch.getLocalCity((status: string, result: any) => {
-          if (status === 'complete' && result.info === 'OK') {
-            const rawProv = result.province || '';
-            const shortProv = rawProv.replace(/(省|市|自治区|壮族自治区|回族自治区|维吾尔自治区|特别行政区)$/, '');
-            const matched = provinceData.find(p => p.name === shortProv || p.name === rawProv);
-            if (matched) {
-              setTheaterProvince(matched.name);
-            } else {
-              setTheaterProvince(rawProv);
-            }
-            setTheaterCity(result.city || '');
+    const doIpFallback = () => {
+      ensureAMapLoaded().then((AMap: any) => {
+        if (!AMap) { setIsLocationLoading(false); return; }
+        const cs = new AMap.CitySearch();
+        cs.getLocalCity((s: string, r: any) => {
+          if (s === 'complete' && r.info === 'OK') {
+            const prov = (r.province || '').replace(/(省|市|自治区|壮族自治区|回族自治区|维吾尔自治区|特别行政区)$/, '');
+            const matched = provinceData.find(p => p.name === prov || p.name === (r.province || ''));
+            setTheaterProvince(matched ? matched.name : (r.province || ''));
+            setTheaterCity(r.city || '');
           }
           setIsLocationLoading(false);
         });
       });
-    });
+    };
+    if (!navigator.geolocation) { doIpFallback(); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        ensureAMapLoaded().then((AMap: any) => {
+          if (!AMap) { doIpFallback(); return; }
+          AMap.plugin('AMap.Geocoder', () => {
+            const geocoder = new AMap.Geocoder();
+            geocoder.getAddress([pos.coords.longitude, pos.coords.latitude], (s: string, r: any) => {
+              if (s === 'complete' && r.regeocode) {
+                const ac = r.regeocode.addressComponent;
+                const prov = (ac.province || '').replace(/(省|市|自治区|壮族自治区|回族自治区|维吾尔自治区|特别行政区)$/, '');
+                const matched = provinceData.find(p => p.name === prov);
+                setTheaterProvince(matched ? matched.name : prov);
+                setTheaterCity(ac.city || ac.province || '');
+              }
+              setIsLocationLoading(false);
+            });
+          });
+        });
+      },
+      () => { doIpFallback(); },
+      { enableHighAccuracy: false, timeout: 5000 }
+    );
   }, [isLocationLoading, ensureAMapLoaded]);
 
   // AMap Init for Normal / Theater tabs
@@ -2928,22 +2984,49 @@ export function RecordModal({
                           <button
                             type="button"
                             onClick={() => {
-                              const AMap = (window as any).AMap;
-                              if (!AMap) return;
-                              const citySearch = new AMap.CitySearch();
-                              citySearch.getLocalCity((status: string, result: any) => {
-                                if (status === 'complete' && result.info === 'OK') {
-                                  const prov = result.province || '';
-                                  const city = result.city || '';
-                                  const matchedProv = provinceData.find(p => prov.includes(p.name) || p.name.includes(prov));
-                                  if (matchedProv) {
-                                    setTravelAttractionProvince(matchedProv.name);
-                                    const matchedCity = matchedProv.cities.find((c: string) => city.includes(c) || c.includes(city));
-                                    setTravelAttractionCity(matchedCity || '');
-                                    travelAttractionAcRef.current = null;
+                              const doIpFallback = () => {
+                                const AMap = (window as any).AMap;
+                                if (!AMap) return;
+                                const cs = new AMap.CitySearch();
+                                cs.getLocalCity((s: string, r: any) => {
+                                  if (s === 'complete' && r.info === 'OK') {
+                                    const prov = (r.province || '').replace(/(省|市|自治区|壮族自治区|回族自治区|维吾尔自治区|特别行政区)$/, '');
+                                    const matchedProv = provinceData.find(p => p.name === prov || prov.includes(p.name));
+                                    if (matchedProv) {
+                                      setTravelAttractionProvince(matchedProv.name);
+                                      const matchedCity = matchedProv.cities.find((c: string) => (r.city || '').includes(c) || c.includes(r.city || ''));
+                                      setTravelAttractionCity(matchedCity || '');
+                                      travelAttractionAcRef.current = null;
+                                    }
                                   }
-                                }
-                              });
+                                });
+                              };
+                              if (!navigator.geolocation) { doIpFallback(); return; }
+                              navigator.geolocation.getCurrentPosition(
+                                (pos) => {
+                                  const AMap = (window as any).AMap;
+                                  if (!AMap) { doIpFallback(); return; }
+                                  AMap.plugin('AMap.Geocoder', () => {
+                                    const geocoder = new AMap.Geocoder();
+                                    geocoder.getAddress([pos.coords.longitude, pos.coords.latitude], (s: string, r: any) => {
+                                      if (s === 'complete' && r.regeocode) {
+                                        const ac = r.regeocode.addressComponent;
+                                        const prov = (ac.province || '').replace(/(省|市|自治区|壮族自治区|回族自治区|维吾尔自治区|特别行政区)$/, '');
+                                        const matchedProv = provinceData.find(p => p.name === prov);
+                                        if (matchedProv) {
+                                          setTravelAttractionProvince(matchedProv.name);
+                                          const cityName = ac.city || ac.province || '';
+                                          const matchedCity = matchedProv.cities.find((c: string) => c === cityName || c.startsWith(cityName.replace(/市$/, '')));
+                                          setTravelAttractionCity(matchedCity || '');
+                                          travelAttractionAcRef.current = null;
+                                        }
+                                      }
+                                    });
+                                  });
+                                },
+                                () => { doIpFallback(); },
+                                { enableHighAccuracy: false, timeout: 5000 }
+                              );
                             }}
                             className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 transition-colors shrink-0"
                             title="自动定位"
