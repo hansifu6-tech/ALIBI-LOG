@@ -1820,26 +1820,39 @@ export function RecordModal({
                         setFoodLat(undefined);
                         setFoodLng(undefined);
 
-                        // 手动触发 search & 自定义列表管理 (debounced for mobile perf)
+                        // 手动触发 search & 自定义列表管理 (debounced + cached for mobile perf)
                         if (activeTab === 'food' && acRef.current && !blockSuggestRef.current) {
                           if (val.length > 0) {
-                            // Debounce: cancel previous pending search
-                            if ((window as any).__foodSearchTimer) clearTimeout((window as any).__foodSearchTimer);
-                            (window as any).__foodSearchTimer = setTimeout(() => {
-                              const t0 = performance.now();
-                              acRef.current?.search(val, (status: string, result: any) => {
-                                const ms = (performance.now() - t0).toFixed(0);
-                                setSearchDebugInfo(`高德响应: ${ms}ms | "${val}" | ${status}`);
-                                console.log(`[AMap] search "${val}": ${ms}ms, status=${status}`);
-                                if (status === 'complete' && result.tips) {
-                                  setFoodSuggestions(result.tips.filter((t: any) => t.id));
-                                  setShowSuggestions(true);
-                                } else {
-                                  setFoodSuggestions([]);
-                                  setShowSuggestions(false);
-                                }
-                              });
-                            }, 300);
+                            // Check cache first
+                            const cacheKey = `${foodCity}|${val}`;
+                            const cache = (window as any).__foodSearchCache || {};
+                            if (cache[cacheKey]) {
+                              setFoodSuggestions(cache[cacheKey]);
+                              setShowSuggestions(true);
+                              setSearchDebugInfo(`缓存命中 | "${val}"`);
+                            } else {
+                              setSearchDebugInfo(`搜索中...`);
+                              // Debounce: cancel previous pending search
+                              if ((window as any).__foodSearchTimer) clearTimeout((window as any).__foodSearchTimer);
+                              (window as any).__foodSearchTimer = setTimeout(() => {
+                                const t0 = performance.now();
+                                acRef.current?.search(val, (status: string, result: any) => {
+                                  const ms = (performance.now() - t0).toFixed(0);
+                                  setSearchDebugInfo(`高德响应: ${ms}ms | "${val}" | ${status}`);
+                                  if (status === 'complete' && result.tips) {
+                                    const filtered = result.tips.filter((t: any) => t.id);
+                                    // Cache the result
+                                    if (!(window as any).__foodSearchCache) (window as any).__foodSearchCache = {};
+                                    (window as any).__foodSearchCache[cacheKey] = filtered;
+                                    setFoodSuggestions(filtered);
+                                    setShowSuggestions(true);
+                                  } else {
+                                    setFoodSuggestions([]);
+                                    setShowSuggestions(false);
+                                  }
+                                });
+                              }, 300);
+                            }
                           } else {
                             if ((window as any).__foodSearchTimer) clearTimeout((window as any).__foodSearchTimer);
                             setShowSuggestions(false);
