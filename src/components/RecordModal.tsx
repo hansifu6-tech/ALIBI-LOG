@@ -1819,19 +1819,26 @@ export function RecordModal({
                         setFoodLat(undefined);
                         setFoodLng(undefined);
 
-                        // 手动触发 search & 自定义列表管理
+                        // 手动触发 search & 自定义列表管理 (debounced for mobile perf)
                         if (activeTab === 'food' && acRef.current && !blockSuggestRef.current) {
                           if (val.length > 0) {
-                            acRef.current.search(val, (status: string, result: any) => {
-                              if (status === 'complete' && result.tips) {
-                                setFoodSuggestions(result.tips.filter((t: any) => t.id)); // 过滤关键词，只留 POI
-                                setShowSuggestions(true);
-                              } else {
-                                setFoodSuggestions([]);
-                                setShowSuggestions(false);
-                              }
-                            });
+                            // Debounce: cancel previous pending search
+                            if ((window as any).__foodSearchTimer) clearTimeout((window as any).__foodSearchTimer);
+                            (window as any).__foodSearchTimer = setTimeout(() => {
+                              const t0 = performance.now();
+                              acRef.current?.search(val, (status: string, result: any) => {
+                                console.log(`[AMap] search "${val}": ${(performance.now() - t0).toFixed(0)}ms, status=${status}`);
+                                if (status === 'complete' && result.tips) {
+                                  setFoodSuggestions(result.tips.filter((t: any) => t.id));
+                                  setShowSuggestions(true);
+                                } else {
+                                  setFoodSuggestions([]);
+                                  setShowSuggestions(false);
+                                }
+                              });
+                            }, 300);
                           } else {
+                            if ((window as any).__foodSearchTimer) clearTimeout((window as any).__foodSearchTimer);
                             setShowSuggestions(false);
                           }
                         }
