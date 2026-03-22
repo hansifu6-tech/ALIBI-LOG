@@ -201,6 +201,7 @@ export function RecordModal({
   // AMap Custom UI States
   const [foodSuggestions, setFoodSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchDebugInfo, setSearchDebugInfo] = useState('');
   const blockSuggestRef = useRef<boolean>(false);
   const foodCityRef = useRef<string>(foodCity); // Always-fresh ref for AMap closures
 
@@ -1827,7 +1828,9 @@ export function RecordModal({
                             (window as any).__foodSearchTimer = setTimeout(() => {
                               const t0 = performance.now();
                               acRef.current?.search(val, (status: string, result: any) => {
-                                console.log(`[AMap] search "${val}": ${(performance.now() - t0).toFixed(0)}ms, status=${status}`);
+                                const ms = (performance.now() - t0).toFixed(0);
+                                setSearchDebugInfo(`高德响应: ${ms}ms | "${val}" | ${status}`);
+                                console.log(`[AMap] search "${val}": ${ms}ms, status=${status}`);
                                 if (status === 'complete' && result.tips) {
                                   setFoodSuggestions(result.tips.filter((t: any) => t.id));
                                   setShowSuggestions(true);
@@ -1859,6 +1862,10 @@ export function RecordModal({
                       maxLength={30}
                     />
                     
+                    {/* 诊断信息 (临时) */}
+                    {searchDebugInfo && activeTab === 'food' && (
+                      <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 px-1 font-mono">{searchDebugInfo}</div>
+                    )}
                     {/* 自定义联想结果列表 */}
                     {showSuggestions && foodSuggestions.length > 0 && (
                       <div className="absolute top-full left-0 right-0 z-[9999] mt-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-2xl max-h-64 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-200">
